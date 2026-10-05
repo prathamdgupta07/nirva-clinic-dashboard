@@ -222,7 +222,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
       calls = simulatedCalls();
     } else {
       var response = await supabaseClient.from("calls").select("id, outcome, duration_seconds, created_at").gte("created_at", since.toISOString());
-      if (response.error) { console.error(response.error); return; }
+      if (response.error) { console.error("Could not load call analytics."); return; }
       calls = response.data || [];
     }
     var banner = document.getElementById("notLiveBanner");

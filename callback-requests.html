@@ -319,7 +319,7 @@ tbody tr:last-child td { border-bottom: none; }
     addSubmitBtn.disabled = false;
 
     if (error) {
-      addError.textContent = error.message || "Could not add this callback request.";
+      addError.textContent = "Could not add this callback request. Please check the details and try again.";
       addError.classList.add("show");
       return;
     }

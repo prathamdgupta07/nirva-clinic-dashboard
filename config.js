@@ -30,12 +30,13 @@ async function recordLogin(userId) {
   try {
     var res = await supabaseClient.from("login_history").insert({ user_id: userId }).select("id").single();
     if (res.error) {
-      console.error("Could not record login history:", res.error.message);
+      // Do not expose backend or database diagnostics in the browser console.
+      console.error("Could not record login history.");
       return;
     }
     sessionStorage.setItem(LOGIN_HISTORY_KEY, res.data.id);
   } catch (e) {
-    console.error("Could not record login history:", e);
+    console.error("Could not record login history.");
   }
 }
 
@@ -46,7 +47,7 @@ async function recordLogout() {
   try {
     await supabaseClient.from("login_history").update({ logout_time: new Date().toISOString() }).eq("id", rowId);
   } catch (e) {
-    console.error("Could not record logout time:", e);
+    console.error("Could not record logout time.");
   }
 }
 

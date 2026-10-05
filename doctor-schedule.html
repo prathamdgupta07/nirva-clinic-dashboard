@@ -316,7 +316,7 @@ tbody tr:last-child td { border-bottom: none; }
     scheduleSubmitBtn.disabled = false;
 
     if (error) {
-      showScheduleError(error.message || "Could not schedule this change. Please try again.");
+      showScheduleError("Could not schedule this change. Please try again.");
       return;
     }
 

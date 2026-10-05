@@ -299,7 +299,7 @@ tbody tr:last-child td { border-bottom: none; }
     leaveSubmitBtn.disabled = false;
 
     if (error) {
-      showLeaveError(error.message || "Could not add this leave. Please try again.");
+      showLeaveError("Could not add this leave. Please try again.");
       return;
     }
 

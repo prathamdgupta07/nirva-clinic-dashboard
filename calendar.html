@@ -625,7 +625,9 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
       body: payload
     });
     if (error) throw error;
-    if (!data || data.success !== true) throw new Error((data && (data.resultText || data.error || data.message)) || "The booking could not be saved.");
+    // Backend diagnostics remain in server logs; the browser gets only a safe,
+    // actionable message so internal details cannot be exposed to visitors.
+    if (!data || data.success !== true) throw new Error("The booking could not be saved. Please check the details and try again.");
     return data;
   }
 
@@ -658,7 +660,7 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
       bookingRequestId = null;
       loadBoard();
     } catch (err) {
-      modalError.textContent = "Could not add booking: " + err.message;
+      modalError.textContent = "The booking could not be saved. Please check the details and try again.";
       modalError.style.display = "block";
     } finally {
       submitBtn.disabled = false;

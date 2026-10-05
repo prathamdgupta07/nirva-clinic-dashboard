@@ -151,6 +151,28 @@ body {
 .stat-card.c-green .value { color: var(--green); }
 .stat-card.c-purple .value { color: var(--purple); }
 
+/* ---------- Staff focus ---------- */
+.section-header { display: flex; align-items: baseline; justify-content: space-between; margin: 4px 0 12px; }
+.section-header h2 { margin: 0; font-size: 15.5px; }
+.section-header span { color: var(--text-muted); font-size: 12.5px; }
+.attention-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+.attention-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 15px; }
+.attention-card .eyebrow { color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .35px; }
+.attention-card .metric { font-size: 25px; font-weight: 700; margin: 5px 0 3px; }
+.attention-card .detail { color: var(--text-muted); font-size: 12.5px; line-height: 1.4; }
+.attention-card.warning { border-left: 4px solid var(--amber); }
+.attention-card.info { border-left: 4px solid var(--blue); }
+.attention-card.success { border-left: 4px solid var(--green); }
+.workspace-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; margin-bottom: 24px; }
+.coverage-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.coverage-item { border: 1px solid var(--border); background: var(--bg); border-radius: 10px; padding: 11px; }
+.coverage-item .name { font-size: 13px; font-weight: 700; }
+.coverage-item .meta { color: var(--text-muted); font-size: 11.5px; margin-top: 3px; }
+.activity-list { display: flex; flex-direction: column; gap: 10px; }
+.activity-item { display: flex; align-items: flex-start; gap: 9px; color: var(--text-muted); font-size: 12.5px; line-height: 1.35; }
+.activity-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--blue); margin-top: 4px; flex: 0 0 auto; }
+.activity-dot.success { background: var(--green); }.activity-dot.warning { background: var(--amber); }
+
 /* ---------- Board ---------- */
 .board-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
 .board-header h2 { font-size: 15.5px; font-weight: 700; margin: 0; }
@@ -272,6 +294,22 @@ body {
 @media (max-width: 1000px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .board { grid-template-columns: 1fr; }
+  .attention-grid { grid-template-columns: 1fr; }
+  .workspace-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .app { display: block; }
+  .sidebar { width: 100%; height: auto; min-height: 0; position: static; padding: 12px; border-right: 0; border-bottom: 1px solid var(--border); }
+  .sidebar .brand { padding: 0 6px 10px; }
+  .sidebar nav, .sidebar .bottom { flex-direction: row; gap: 4px; overflow-x: auto; padding: 0; border: 0; margin: 0; }
+  .sidebar nav a, .sidebar .bottom a { white-space: nowrap; padding: 8px 10px; }
+  .topbar { padding: 12px 16px; }
+  .topbar .search { width: 100%; }.topbar .bell, .topbar .user .info { display: none; }
+  .topbar .right { gap: 8px; margin-left: 12px; }.topbar .user { gap: 0; }
+  .content { padding: 20px 16px; }
+  .greeting .right-actions { width: 100%; flex-wrap: wrap; }.greeting .date-chip { display: none; }
+  .stats-grid, .coverage-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card { padding: 14px; }.card-actions button { min-height: 40px; }
 }
 </style>
 <link rel="stylesheet" href="clinic-theme.css">
@@ -384,6 +422,25 @@ body {
           <div class="label">Completed</div>
           <div class="value" id="statCompleted">—</div>
         </div>
+      </div>
+
+      <div class="section-header">
+        <h2>Needs Attention</h2>
+        <span>Quick actions for the team</span>
+      </div>
+      <div class="attention-grid" id="attentionGrid" aria-live="polite">
+        <div class="attention-card info"><div class="eyebrow">Loading</div><div class="metric">—</div><div class="detail">Preparing today’s priorities.</div></div>
+      </div>
+
+      <div class="workspace-grid">
+        <section class="side-card">
+          <h3>Doctor Coverage Today</h3>
+          <div class="coverage-grid" id="doctorCoverage"><div class="empty-column">Loading doctor availability…</div></div>
+        </section>
+        <section class="side-card">
+          <h3>Live Activity</h3>
+          <div class="activity-list" id="activityList"><div class="activity-item"><span class="activity-dot"></span><span>Waiting for today’s activity.</span></div></div>
+        </section>
       </div>
 
       <!-- Needs Callback: missed calls not yet followed up on -->
@@ -636,7 +693,52 @@ body {
 
   // ---------- Load + render board ----------
   var currentBookings = [];
+  var currentCallbacks = [];
   var bookingSearchQuery = "";
+  var activityEntries = [];
+  var hasInitialActivity = false;
+
+  // Activity deliberately contains no patient names, phone numbers, record IDs,
+  // or backend error text. It is safe for a staff workspace at a glance.
+  function addActivity(message, tone) {
+    activityEntries.unshift({ message: message, tone: tone || "info", time: new Date() });
+    activityEntries = activityEntries.slice(0, 6);
+    var list = document.getElementById("activityList");
+    if (!list) return;
+    list.innerHTML = activityEntries.map(function (entry) {
+      return '<div class="activity-item"><span class="activity-dot ' + escapeHtml(entry.tone) + '"></span><span>' + escapeHtml(entry.message) + ' · ' + escapeHtml(entry.time.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })) + '</span></div>';
+    }).join("");
+  }
+
+  function renderAttention() {
+    var target = document.getElementById("attentionGrid");
+    if (!target) return;
+    var callbacks = currentCallbacks.length;
+    var changes = currentBookings.filter(function (b) { return b.status === "no_show" || b.status === "cancelled"; }).length;
+    var remaining = currentBookings.filter(function (b) { return b.status === "confirmed" || b.status === "arrived"; }).length;
+    target.innerHTML =
+      '<div class="attention-card ' + (callbacks ? "warning" : "success") + '"><div class="eyebrow">Callbacks</div><div class="metric">' + callbacks + '</div><div class="detail">' + (callbacks ? "Patients waiting for a follow-up." : "No follow-up calls waiting.") + '</div></div>' +
+      '<div class="attention-card ' + (changes ? "warning" : "info") + '"><div class="eyebrow">Schedule changes</div><div class="metric">' + changes + '</div><div class="detail">' + (changes ? "Cancelled or no-show appointments today." : "No cancelled or no-show appointments.") + '</div></div>' +
+      '<div class="attention-card info"><div class="eyebrow">Still to see</div><div class="metric">' + remaining + '</div><div class="detail">Confirmed and arrived appointments remaining.</div></div>';
+  }
+
+  function renderDoctorCoverage() {
+    var target = document.getElementById("doctorCoverage");
+    if (!target) return;
+    var doctors = Object.keys(doctorById || {}).map(function (id) { return doctorById[id]; });
+    if (!doctors.length) {
+      target.innerHTML = '<div class="empty-column">Doctor availability is not available.</div>';
+      return;
+    }
+    var today = new Date().getDay();
+    target.innerHTML = doctors.map(function (doctor) {
+      var days = String(doctor.working_days || "").split(",").map(function (day) { return Number(day.trim()); });
+      var working = !days.filter(function (day) { return !isNaN(day); }).length || days.indexOf(today) !== -1;
+      var booked = currentBookings.filter(function (booking) { return booking.doctor_id === doctor.id && booking.status !== "cancelled" && booking.status !== "no_show"; }).length;
+      var hours = doctor.start_time && doctor.end_time ? String(doctor.start_time).slice(0, 5) + "–" + String(doctor.end_time).slice(0, 5) : "Hours not set";
+      return '<div class="coverage-item"><div class="name">' + escapeHtml(doctor.name || "Doctor") + '</div><div class="meta">' + (working ? "Working · " + escapeHtml(hours) : "Not scheduled today") + ' · ' + booked + ' booked</div></div>';
+    }).join("");
+  }
 
   function matchesBookingSearch(booking, query) {
     if (!query) return true;
@@ -665,6 +767,10 @@ body {
     }
 
     currentBookings = data || [];
+    if (!hasInitialActivity) {
+      addActivity("Today’s schedule was loaded.", "info");
+      hasInitialActivity = true;
+    }
     renderBoard();
   }
 
@@ -721,6 +827,8 @@ body {
     document.getElementById("statConfirmed").textContent = confirmed.length;
     document.getElementById("statArrived").textContent = arrived.length;
     document.getElementById("statCompleted").textContent = completed.length;
+    renderAttention();
+    renderDoctorCoverage();
   }
 
   document.getElementById("bookingSearch").addEventListener("input", function (event) {
@@ -771,6 +879,8 @@ body {
         btn.disabled = false;
         return;
       }
+      addActivity("A callback was marked complete.", "success");
+      showToast("Callback completed.");
       loadCallbackList();
       return;
     }
@@ -793,6 +903,8 @@ body {
       btn.disabled = false;
       return;
     }
+    addActivity("An appointment status was updated.", "success");
+    showToast("Appointment updated.");
     loadBoard();
   });
 
@@ -815,10 +927,14 @@ body {
       .order("created_at", { ascending: false });
 
     if (error || !data || data.length === 0) {
+      currentCallbacks = [];
+      renderAttention();
       wrap.style.display = "none";
       return;
     }
 
+    currentCallbacks = data;
+    renderAttention();
     wrap.style.display = "block";
     document.getElementById("callbackList").innerHTML = data.map(function (c) {
       var who = (c.patients ? c.patients.name : null) || c.caller_name || "Unknown caller";
@@ -889,6 +1005,7 @@ body {
     select.innerHTML = data.map(function (d) {
       return '<option value="' + escapeHtml(d.id) + '">' + escapeHtml(d.name) + (d.specialty ? " — " + escapeHtml(d.specialty) : "") + "</option>";
     }).join("");
+    renderDoctorCoverage();
   }
 
   // The browser never creates patients or bookings directly. The protected
@@ -898,9 +1015,32 @@ body {
     var { data, error } = await supabaseClient.functions.invoke("staff-book-appointment", {
       body: payload
     });
-    if (error) throw error;
-    if (!data || data.success !== true) throw new Error((data && (data.resultText || data.error || data.message)) || "The booking could not be saved.");
+    // Never pass raw function, network, database, or infrastructure messages
+    // into the browser. The server retains diagnostic details in its logs.
+    if (error) throw new Error("The booking could not be saved. Please try again.");
+    if (!data || data.success !== true) {
+      var messages = {
+        slot_unavailable: "That appointment time is no longer available. Please choose another time.",
+        booking_conflict: "That appointment time is no longer available. Please choose another time.",
+        invalid_request: "Check the patient and appointment details, then try again.",
+        unauthorized: "Your account is not allowed to create bookings."
+      };
+      throw new Error(messages[data && data.error_code] || "The booking could not be saved. Please try again.");
+    }
     return data;
+  }
+
+  function safeBookingMessage(err) {
+    var message = err && err.message ? err.message : "";
+    var allowedStarts = [
+      "Choose a doctor", "Appointments must", "Enter the phone number",
+      "This browser cannot", "is not scheduled", "This doctor's working hours",
+      "is available only", "That appointment time", "Check the patient",
+      "Your account is not allowed", "The booking could not"
+    ];
+    return allowedStarts.some(function (start) { return message.indexOf(start) === 0; })
+      ? message
+      : "The booking could not be saved. Please try again.";
   }
 
   document.getElementById("addBookingForm").addEventListener("submit", async function (e) {
@@ -931,9 +1071,11 @@ body {
 
       overlay.style.display = "none";
       bookingRequestId = null;
+      addActivity("A staff booking was saved.", "success");
+      showToast("Booking saved successfully.");
       loadBoard();
     } catch (err) {
-      modalError.textContent = "Could not add booking: " + err.message;
+      modalError.textContent = safeBookingMessage(err);
       modalError.style.display = "block";
     } finally {
       submitBtn.disabled = false;
@@ -951,6 +1093,7 @@ body {
           if (row.source === "ai_agent") {
             showToast("New booking from AI Agent");
             playChime();
+            addActivity("A new AI booking was received.", "success");
           }
           loadBoard();
         }
@@ -969,9 +1112,11 @@ body {
         if (payload.new.outcome === "missed") {
           showToast("AI missed a call — needs a callback", "missed-call");
           playChime();
+          addActivity("A missed call needs a callback.", "warning");
         } else if (payload.new.outcome === "callback_requested") {
           showToast("Doctor unavailable — patient needs a callback", "missed-call");
           playChime();
+          addActivity("A doctor-availability callback was requested.", "warning");
         }
         loadCallbackList();
       })
