@@ -174,9 +174,11 @@ body {
 .activity-dot.success { background: var(--green); }.activity-dot.warning { background: var(--amber); }
 
 /* ---------- Board ---------- */
-.board-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.board-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
 .board-header h2 { font-size: 15.5px; font-weight: 700; margin: 0; }
 .board-header .subtitle { font-size: 12.5px; color: var(--text-muted); }
+.board-header .controls { display: flex; align-items: center; gap: 10px; }
+.board-header select { border: 1px solid var(--border); border-radius: 8px; background: white; color: var(--text-dark); font: inherit; font-size: 12.5px; padding: 7px 10px; max-width: 200px; }
 
 .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
 
@@ -309,6 +311,7 @@ body {
   .content { padding: 20px 16px; }
   .greeting .right-actions { width: 100%; flex-wrap: wrap; }.greeting .date-chip { display: none; }
   .stats-grid, .coverage-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .board-header .controls { width: 100%; }.board-header select { flex: 1; max-width: none; }
   .stat-card { padding: 14px; }.card-actions button { min-height: 40px; }
 }
 </style>
@@ -454,8 +457,11 @@ body {
 
       <!-- Board -->
       <div class="board-header">
-        <h2>Today's Schedule</h2>
-        <span class="subtitle" id="boardSubtitle">Loading...</span>
+        <div><h2 id="scheduleHeading">Today's Schedule</h2><span class="subtitle" id="boardSubtitle">Loading...</span></div>
+        <div class="controls">
+          <label for="doctorFilter" style="font-size:12.5px;color:var(--text-muted);">Doctor</label>
+          <select id="doctorFilter" aria-label="Filter today's schedule by doctor"><option value="">All doctors</option></select>
+        </div>
       </div>
 
       <div class="board">
@@ -695,6 +701,7 @@ body {
   var currentBookings = [];
   var currentCallbacks = [];
   var bookingSearchQuery = "";
+  var doctorFilterId = "";
   var activityEntries = [];
   var hasInitialActivity = false;
 
@@ -717,9 +724,9 @@ body {
     var changes = currentBookings.filter(function (b) { return b.status === "no_show" || b.status === "cancelled"; }).length;
     var remaining = currentBookings.filter(function (b) { return b.status === "confirmed" || b.status === "arrived"; }).length;
     target.innerHTML =
-      '<div class="attention-card ' + (callbacks ? "warning" : "success") + '"><div class="eyebrow">Callbacks</div><div class="metric">' + callbacks + '</div><div class="detail">' + (callbacks ? "Patients waiting for a follow-up." : "No follow-up calls waiting.") + '</div></div>' +
-      '<div class="attention-card ' + (changes ? "warning" : "info") + '"><div class="eyebrow">Schedule changes</div><div class="metric">' + changes + '</div><div class="detail">' + (changes ? "Cancelled or no-show appointments today." : "No cancelled or no-show appointments.") + '</div></div>' +
-      '<div class="attention-card info"><div class="eyebrow">Still to see</div><div class="metric">' + remaining + '</div><div class="detail">Confirmed and arrived appointments remaining.</div></div>';
+      '<a class="attention-card ' + (callbacks ? "warning" : "success") + '" href="callback-requests.html" style="color:inherit;text-decoration:none"><div class="eyebrow">Callbacks</div><div class="metric">' + callbacks + '</div><div class="detail">' + (callbacks ? "Open the callback queue." : "No follow-up calls waiting.") + '</div></a>' +
+      '<a class="attention-card ' + (changes ? "warning" : "info") + '" href="#sideCardWrap" style="color:inherit;text-decoration:none"><div class="eyebrow">Schedule changes</div><div class="metric">' + changes + '</div><div class="detail">' + (changes ? "Review cancelled or no-show appointments." : "No cancelled or no-show appointments.") + '</div></a>' +
+      '<a class="attention-card info" href="#scheduleHeading" style="color:inherit;text-decoration:none"><div class="eyebrow">Still to see</div><div class="metric">' + remaining + '</div><div class="detail">Confirmed and arrived appointments remaining.</div></a>';
   }
 
   function renderDoctorCoverage() {
@@ -776,7 +783,9 @@ body {
 
   function renderBoard() {
     var subtitle = document.getElementById("boardSubtitle");
-    var visibleBookings = currentBookings.filter(function (b) { return matchesBookingSearch(b, bookingSearchQuery); });
+    var visibleBookings = currentBookings.filter(function (b) {
+      return matchesBookingSearch(b, bookingSearchQuery) && (!doctorFilterId || b.doctor_id === doctorFilterId);
+    });
     subtitle.textContent = bookingSearchQuery
       ? visibleBookings.length + " of " + currentBookings.length + " appointments match your search"
       : currentBookings.length + " appointment" + (currentBookings.length === 1 ? "" : "s") + " today";
@@ -833,6 +842,11 @@ body {
 
   document.getElementById("bookingSearch").addEventListener("input", function (event) {
     bookingSearchQuery = event.target.value.trim().toLowerCase();
+    renderBoard();
+  });
+
+  document.getElementById("doctorFilter").addEventListener("change", function (event) {
+    doctorFilterId = event.target.value;
     renderBoard();
   });
 
@@ -1004,6 +1018,9 @@ body {
     doctorById = Object.fromEntries(data.map(function (d) { return [d.id, d]; }));
     select.innerHTML = data.map(function (d) {
       return '<option value="' + escapeHtml(d.id) + '">' + escapeHtml(d.name) + (d.specialty ? " — " + escapeHtml(d.specialty) : "") + "</option>";
+    }).join("");
+    document.getElementById("doctorFilter").innerHTML = '<option value="">All doctors</option>' + data.map(function (d) {
+      return '<option value="' + escapeHtml(d.id) + '">' + escapeHtml(d.name) + "</option>";
     }).join("");
     renderDoctorCoverage();
   }
