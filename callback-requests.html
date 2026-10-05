@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nirva — Callback Requests</title>
+<style>
+:root {
+  --bg: #F5F7FA; --sidebar-bg: #FFFFFF; --card-bg: #FFFFFF; --border: #EAEDF2;
+  --text-dark: #1A1F2B; --text-muted: #7C8493; --active-bg: #EEF2FF; --active-text: #4F46E5;
+  --blue: #3B82F6; --blue-soft: #EAF2FE; --green: #22C55E; --green-soft: #E9FBF0;
+  --red: #EF4444; --red-soft: #FDECEC; --purple: #8B5CF6; --purple-soft: #F3EEFE;
+  --amber: #F59E0B; --amber-soft: #FEF6E7;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text-dark); }
+.app { display: flex; min-height: 100vh; }
+.sidebar { width: 240px; flex-shrink: 0; background-color: var(--sidebar-bg); border-right: 1px solid var(--border); padding: 22px 16px; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.sidebar .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 24px; }
+.sidebar .brand .logo { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--blue), var(--purple)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 14px; }
+.sidebar .brand span { font-weight: 700; font-size: 16px; }
+.sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+.sidebar nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: var(--text-muted); font-size: 14px; font-weight: 500; transition: background-color 0.15s ease, color 0.15s ease; }
+.sidebar nav a:hover { background-color: #F5F6FA; color: var(--text-dark); }
+.sidebar nav a.active { background-color: var(--active-bg); color: var(--active-text); font-weight: 600; }
+.sidebar nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
+.sidebar .bottom { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+.sidebar .bottom a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: var(--text-muted); font-size: 13px; font-weight: 500; }
+.sidebar .bottom a svg { width: 16px; height: 16px; flex-shrink: 0; }
+.sidebar .bottom a.active { background-color: var(--active-bg); color: var(--active-text); font-weight: 600; }
+.main { flex: 1; min-width: 0; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; background-color: var(--card-bg); border-bottom: 1px solid var(--border); }
+.topbar .search { display: flex; align-items: center; gap: 10px; background-color: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 9px 14px; width: 320px; color: var(--text-muted); font-size: 13.5px; }
+.topbar .search svg { width: 16px; height: 16px; flex-shrink: 0; }
+.topbar .right { display: flex; align-items: center; gap: 18px; }
+.topbar .bell { width: 36px; height: 36px; border-radius: 50%; background-color: var(--bg); display: flex; align-items: center; justify-content: center; color: var(--text-muted); position: relative; }
+.topbar .bell svg { width: 17px; height: 17px; }
+.topbar .bell .dot { position: absolute; top: 8px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background-color: var(--red); border: 1.5px solid white; }
+.topbar .user { display: flex; align-items: center; gap: 10px; }
+.topbar .user .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--purple)); color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.topbar .user .info div:first-child { font-size: 13.5px; font-weight: 600; }
+.topbar .user .info div:last-child { font-size: 12px; color: var(--text-muted); }
+.content { padding: 28px 32px; max-width: 1280px; margin: 0 auto; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+.page-header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+.page-header p { margin: 0; font-size: 13.5px; color: var(--text-muted); }
+.card { background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+.card-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.card-header h2 { font-size: 15.5px; font-weight: 700; margin: 0; }
+.card-header .subtitle { font-size: 12.5px; color: var(--text-muted); }
+table { width: 100%; border-collapse: collapse; }
+thead th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+tbody td { padding: 12px 10px; font-size: 13.5px; border-bottom: 1px solid var(--border); }
+tbody tr:last-child td { border-bottom: none; }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 13.5px; }
+.pill { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; display: inline-block; }
+.pill.pending { background-color: var(--amber-soft); color: #92660A; }
+.pill.contacted { background-color: var(--green-soft); color: #16803C; }
+.btn-small { font-family: inherit; font-size: 11.5px; font-weight: 600; padding: 7px 10px; border-radius: 7px; border: 1px solid var(--border); background-color: white; color: var(--text-dark); cursor: pointer; white-space: nowrap; }
+.btn-small:hover { background-color: #F5F6FA; }
+.btn-small:disabled { opacity: 0.6; cursor: default; }
+.add-form { display: grid; grid-template-columns: 1.2fr 1.2fr 1fr auto; gap: 12px; align-items: end; margin-bottom: 4px; }
+.add-form .form-field { display: flex; flex-direction: column; gap: 6px; }
+.add-form .form-field label { font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+.add-form .form-field select,
+.add-form .form-field input { border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13.5px; color: var(--text-dark); background-color: var(--bg); font-family: inherit; width: 100%; }
+.btn-submit { padding: 10px 16px; border: none; border-radius: 8px; background-color: var(--blue); color: white; font-size: 13.5px; font-weight: 700; font-family: inherit; cursor: pointer; white-space: nowrap; }
+.btn-submit:hover { background-color: #2f6fe0; }
+.btn-submit:disabled { opacity: 0.6; cursor: default; }
+.form-error { font-size: 12.5px; color: #B91C1C; margin-top: 10px; display: none; }
+.form-error.show { display: block; }
+</style>
+<link rel="stylesheet" href="clinic-theme.css">
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="logo">N</div><span>Nirva</span></div>
+    <nav>
+      <a href="dashboard-light.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a href="calendar.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Calendar
+      </a>
+      <a href="callback-requests.html" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 2 16 8 22 8"/><line x1="22" y1="2" x2="16" y2="8"/><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg>
+        Callback Requests
+      </a>
+      <a href="calls.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg>
+        Calls
+      </a>
+      <a href="patients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Patients
+      </a>
+    </nav>
+    <div class="bottom">
+      <a href="doctor-schedule.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Doctor Schedule
+      </a>
+      <a href="doctor-leave.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/></svg>
+        Doctor Leave
+      </a>
+      <a href="clinic-info.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        Clinic Info
+      </a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        Search patients, calls, appointments...
+      </div>
+      <div class="right">
+        <div class="bell">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="dot"></span>
+        </div>
+        <div class="user">
+          <div class="avatar" id="userAvatar">NH</div>
+          <div class="info"><div id="userDisplayName">Loading...</div><div id="userEmail" style="font-size:12px;color:var(--text-muted);"></div></div>
+        </div>
+        <button id="logoutBtn" style="font-size:12.5px;font-family:inherit;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background-color:var(--bg);color:var(--text-muted);cursor:pointer;">Log out</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-header">
+        <div>
+          <h1>Callback Requests</h1>
+          <p>Callers who asked to be called back, from the phone agent or added manually.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>Add Callback Request</h2></div>
+        <form id="addForm" class="add-form">
+          <div class="form-field"><label>Caller Name</label><input type="text" id="fName" required></div>
+          <div class="form-field"><label>Doctor (optional)</label><select id="fDoctor"><option value="">— No specific doctor —</option></select></div>
+          <div class="form-field"><label>Phone Number</label><input type="tel" id="fPhone" required></div>
+          <button type="submit" class="btn-submit" id="addSubmitBtn">Add</button>
+        </form>
+        <div class="form-error" id="addError"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>All Callback Requests</h2>
+          <span class="subtitle" id="requestCount">Loading...</span>
+        </div>
+        <table id="requestsTable" style="display:none;">
+          <thead>
+            <tr><th>Caller</th><th>Doctor</th><th>Phone</th><th>Reason</th><th>Requested</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody id="requestsBody"></tbody>
+        </table>
+        <div class="empty-state" id="requestsEmpty" style="display:none;">
+          No callback requests yet.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=20261001"></script>
+<script>
+  async function requireSession() {
+    var { data } = await supabaseClient.auth.getSession();
+    if (!data || !data.session) {
+      window.location.href = "login.html";
+      return null;
+    }
+    return data.session;
+  }
+
+  document.getElementById("logoutBtn").addEventListener("click", async function () {
+    await recordLogout();
+    await supabaseClient.auth.signOut();
+    window.location.href = "login.html";
+  });
+
+  function formatRequestedTime(iso) {
+    return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+
+  var currentSession = null;
+
+  // The same ID is kept when the staff member retries after a lost response.
+  // The server then returns the first completed operation instead of recording
+  // the callback twice.
+  var callbackCompletionRequestIds = {};
+
+  function newIdempotencyKey() {
+    if (!window.crypto || typeof window.crypto.randomUUID !== "function") {
+      throw new Error("This browser cannot create a secure request. Please use a current browser and try again.");
+    }
+    return window.crypto.randomUUID();
+  }
+
+  function callbackCompletionError(code) {
+    var messages = {
+      callback_not_found: "This callback request is no longer available.",
+      invalid_transition: "This callback request has already changed. Refreshing may help.",
+      unauthorized: "Your account is not allowed to complete callback requests."
+    };
+    return messages[code] || "The callback request could not be updated. Please try again.";
+  }
+
+  async function completeCallbackRequest(id) {
+    if (!callbackCompletionRequestIds[id]) callbackCompletionRequestIds[id] = newIdempotencyKey();
+    var { data, error } = await supabaseClient.functions.invoke("staff-complete-callback", {
+      body: {
+        target_type: "callback_request",
+        target_id: id,
+        idempotency_key: callbackCompletionRequestIds[id]
+      }
+    });
+    if (error) throw new Error("The callback request could not be updated. Please try again.");
+    if (!data || data.success !== true) throw new Error(callbackCompletionError(data && data.error_code));
+    delete callbackCompletionRequestIds[id];
+  }
+
+  async function loadDoctorsIntoSelect() {
+    var select = document.getElementById("fDoctor");
+    var { data, error } = await supabaseClient.from("doctors").select("id, name").eq("active", true).order("name");
+    if (error || !data) return;
+    select.innerHTML = '<option value="">— No specific doctor —</option>' + data.map(function (d) {
+      return '<option value="' + d.id + '">' + d.name + "</option>";
+    }).join("");
+  }
+
+  async function loadRequests() {
+    var count = document.getElementById("requestCount");
+    var table = document.getElementById("requestsTable");
+    var body = document.getElementById("requestsBody");
+    var empty = document.getElementById("requestsEmpty");
+
+    var { data, error } = await supabaseClient
+      .from("callback_requests")
+      .select("id, caller_name, phone_number, reason, status, created_at, doctors(name)")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      count.textContent = "Could not load callback requests.";
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      count.textContent = "0 total";
+      table.style.display = "none";
+      empty.style.display = "block";
+      return;
+    }
+
+    count.textContent = data.length + " total";
+    table.style.display = "table";
+    empty.style.display = "none";
+
+    body.innerHTML = data.map(function (r) {
+      var doctorName = (r.doctors && r.doctors.name) || "—";
+      var statusPill = r.status === "contacted"
+        ? '<span class="pill contacted">Contacted</span>'
+        : '<span class="pill pending">Pending</span>';
+      var actionCell = r.status === "pending"
+        ? '<button class="btn-small" data-id="' + r.id + '">Mark Contacted</button>'
+        : "";
+      var reasonText = r.reason || "Patient requested a callback";
+      return "<tr><td>" + r.caller_name + "</td><td>" + doctorName + "</td><td>" + r.phone_number + "</td><td>" + reasonText + "</td><td>" + formatRequestedTime(r.created_at) + "</td><td>" + statusPill + "</td><td>" + actionCell + "</td></tr>";
+    }).join("");
+  }
+
+  document.getElementById("requestsBody").addEventListener("click", async function (e) {
+    var btn = e.target.closest("button[data-id]");
+    if (!btn) return;
+    btn.disabled = true;
+
+    try {
+      await completeCallbackRequest(btn.getAttribute("data-id"));
+    } catch (err) {
+      alert(err.message || "Could not update this request. Please try again.");
+      btn.disabled = false;
+      return;
+    }
+    loadRequests();
+  });
+
+  var addForm = document.getElementById("addForm");
+  var addError = document.getElementById("addError");
+  var addSubmitBtn = document.getElementById("addSubmitBtn");
+
+  addForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    addError.classList.remove("show");
+
+    var callerName = document.getElementById("fName").value.trim();
+    var doctorId = document.getElementById("fDoctor").value || null;
+    var phone = document.getElementById("fPhone").value.trim();
+
+    addSubmitBtn.disabled = true;
+
+    var { error } = await supabaseClient.from("callback_requests").insert({
+      caller_name: callerName,
+      doctor_id: doctorId,
+      phone_number: phone,
+      created_by: currentSession ? currentSession.user.id : null
+    });
+
+    addSubmitBtn.disabled = false;
+
+    if (error) {
+      addError.textContent = error.message || "Could not add this callback request.";
+      addError.classList.add("show");
+      return;
+    }
+
+    addForm.reset();
+    loadRequests();
+  });
+
+    function initials(name) {
+    var parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "NH";
+    return (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
+  }
+
+  async function loadIdentityBadge(session) {
+    document.getElementById("userEmail").textContent = session.user.email;
+
+    var { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("role, full_name")
+      .eq("id", session.user.id)
+      .maybeSingle();
+
+    var displayName = "Team";
+    var role = profile && profile.role;
+
+    if (role === "doctor") {
+      var { data: doc } = await supabaseClient
+        .from("doctors")
+        .select("name")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      displayName = (doc && doc.name) || (profile && profile.full_name) || "Doctor";
+    } else if (profile && profile.full_name) {
+      displayName = profile.full_name;
+    }
+
+    document.getElementById("userDisplayName").textContent = displayName;
+    document.getElementById("userAvatar").textContent = initials(displayName === "Team" ? "Nirva Hospital" : displayName);
+    return role;
+  }
+
+(async function init() {
+    var session = await requireSession();
+    if (!session) return;
+    currentSession = session;
+    var userRole = await loadIdentityBadge(session);
+    loadDoctorsIntoSelect();
+    loadRequests();
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nirva — Doctor Schedule</title>
+<style>
+:root {
+  --bg: #F5F7FA; --sidebar-bg: #FFFFFF; --card-bg: #FFFFFF; --border: #EAEDF2;
+  --text-dark: #1A1F2B; --text-muted: #7C8493; --active-bg: #EEF2FF; --active-text: #4F46E5;
+  --blue: #3B82F6; --blue-soft: #EAF2FE; --green: #22C55E; --green-soft: #E9FBF0;
+  --red: #EF4444; --red-soft: #FDECEC; --purple: #8B5CF6; --purple-soft: #F3EEFE;
+  --amber: #F59E0B; --amber-soft: #FEF6E7;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text-dark); }
+.app { display: flex; min-height: 100vh; }
+.sidebar { width: 240px; flex-shrink: 0; background-color: var(--sidebar-bg); border-right: 1px solid var(--border); padding: 22px 16px; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.sidebar .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 24px; }
+.sidebar .brand .logo { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--blue), var(--purple)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 14px; }
+.sidebar .brand span { font-weight: 700; font-size: 16px; }
+.sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+.sidebar nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: var(--text-muted); font-size: 14px; font-weight: 500; transition: background-color 0.15s ease, color 0.15s ease; }
+.sidebar nav a:hover { background-color: #F5F6FA; color: var(--text-dark); }
+.sidebar nav a.active { background-color: var(--active-bg); color: var(--active-text); font-weight: 600; }
+.sidebar nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
+.sidebar .bottom { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+.sidebar .bottom a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: var(--text-muted); font-size: 13px; font-weight: 500; }
+.sidebar .bottom a svg { width: 16px; height: 16px; flex-shrink: 0; }
+.sidebar .bottom a.active { background-color: var(--active-bg); color: var(--active-text); font-weight: 600; }
+.main { flex: 1; min-width: 0; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; background-color: var(--card-bg); border-bottom: 1px solid var(--border); }
+.topbar .search { display: flex; align-items: center; gap: 10px; background-color: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 9px 14px; width: 320px; color: var(--text-muted); font-size: 13.5px; }
+.topbar .search svg { width: 16px; height: 16px; flex-shrink: 0; }
+.topbar .right { display: flex; align-items: center; gap: 18px; }
+.topbar .bell { width: 36px; height: 36px; border-radius: 50%; background-color: var(--bg); display: flex; align-items: center; justify-content: center; color: var(--text-muted); position: relative; }
+.topbar .bell svg { width: 17px; height: 17px; }
+.topbar .bell .dot { position: absolute; top: 8px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background-color: var(--red); border: 1.5px solid white; }
+.topbar .user { display: flex; align-items: center; gap: 10px; }
+.topbar .user .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--purple)); color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.topbar .user .info div:first-child { font-size: 13.5px; font-weight: 600; }
+.topbar .user .info div:last-child { font-size: 12px; color: var(--text-muted); }
+.content { padding: 28px 32px; max-width: 1280px; margin: 0 auto; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+.page-header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+.page-header p { margin: 0; font-size: 13.5px; color: var(--text-muted); }
+.card { background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+.card-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.card-header h2 { font-size: 15.5px; font-weight: 700; margin: 0; }
+.card-header .subtitle { font-size: 12.5px; color: var(--text-muted); }
+table { width: 100%; border-collapse: collapse; }
+thead th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+tbody td { padding: 12px 10px; font-size: 13.5px; border-bottom: 1px solid var(--border); }
+tbody tr:last-child td { border-bottom: none; }
+.empty-note { font-size: 13px; color: var(--text-muted); padding: 10px 2px; }
+.pill { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; display: inline-block; }
+.pill.pending { background-color: var(--amber-soft); color: #92660A; }
+.pill.applied { background-color: var(--green-soft); color: #16803C; }
+.schedule-form { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1.4fr auto; gap: 12px; align-items: end; }
+.schedule-form .form-field { display: flex; flex-direction: column; gap: 6px; }
+.schedule-form .form-field label { font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+.schedule-form .form-field select { border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13.5px; color: var(--text-dark); background-color: var(--bg); font-family: inherit; }
+.schedule-form .form-field input[type="time"],
+.schedule-form .form-field input[type="datetime-local"] { border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13.5px; color: var(--text-dark); background-color: var(--bg); font-family: inherit; width: 100%; }
+.btn-submit { padding: 10px 16px; border: none; border-radius: 8px; background-color: var(--blue); color: white; font-size: 13.5px; font-weight: 700; font-family: inherit; cursor: pointer; white-space: nowrap; }
+.btn-submit:hover { background-color: #2f6fe0; }
+.btn-submit:disabled { opacity: 0.6; cursor: default; }
+.form-note { font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+.form-error { font-size: 12.5px; color: #B91C1C; margin-top: 10px; display: none; }
+.form-error.show { display: block; }
+.form-success { font-size: 12.5px; color: #15803D; margin-top: 10px; display: none; }
+.form-success.show { display: block; }
+</style>
+<link rel="stylesheet" href="clinic-theme.css">
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="logo">N</div><span>Nirva</span></div>
+    <nav>
+      <a href="dashboard-light.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a href="calendar.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Calendar
+      </a>
+      <a href="callback-requests.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 2 16 8 22 8"/><line x1="22" y1="2" x2="16" y2="8"/><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg>
+        Callback Requests
+      </a>
+      <a href="calls.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg>
+        Calls
+      </a>
+      <a href="patients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Patients
+      </a>
+    </nav>
+    <div class="bottom">
+      <a href="doctor-schedule.html" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Doctor Schedule
+      </a>
+      <a href="doctor-leave.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/></svg>
+        Doctor Leave
+      </a>
+      <a href="clinic-info.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        Clinic Info
+      </a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        Search patients, calls, appointments...
+      </div>
+      <div class="right">
+        <div class="bell">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="dot"></span>
+        </div>
+        <div class="user">
+          <div class="avatar" id="userAvatar">NH</div>
+          <div class="info"><div id="userDisplayName">Loading...</div><div id="userEmail" style="font-size:12px;color:var(--text-muted);"></div></div>
+        </div>
+        <button id="logoutBtn" style="font-size:12.5px;font-family:inherit;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background-color:var(--bg);color:var(--text-muted);cursor:pointer;">Log out</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-header">
+        <div>
+          <h1>Doctor Schedule</h1>
+          <p>Schedule a working-hours change for a doctor. Only that doctor's own login can submit a change for themselves; staff can view the history here.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Doctor Working Hours</h2>
+          <span class="subtitle">Changes take effect at the time you choose — the live schedule isn't touched until then</span>
+        </div>
+        <form id="scheduleForm" class="schedule-form">
+          <div class="form-field">
+            <label>Doctor</label>
+            <select id="scheduleDoctor" required></select>
+          </div>
+          <div class="form-field">
+            <label>New Start Time</label>
+            <input type="time" id="scheduleStart" required>
+          </div>
+          <div class="form-field">
+            <label>New End Time</label>
+            <input type="time" id="scheduleEnd" required>
+          </div>
+          <div class="form-field">
+            <label>Effective From</label>
+            <input type="datetime-local" id="scheduleEffective" required>
+          </div>
+          <button type="submit" class="btn-submit" id="scheduleSubmitBtn">Schedule Change</button>
+        </form>
+        <div class="form-error" id="scheduleError"></div>
+        <div class="form-success" id="scheduleSuccess">Change scheduled — it will apply automatically once due.</div>
+        <p class="form-note">Applied automatically by a scheduled job that checks every couple of minutes. Nothing updates the live doctor record until the effective time is reached. A doctor's login can only schedule a change for their own record — the database rejects anything else, even if submitted here.</p>
+
+        <table style="margin-top:16px;">
+          <thead>
+            <tr><th>Doctor</th><th>New Hours</th><th>Effective From</th><th>Changed By</th><th>Status</th></tr>
+          </thead>
+          <tbody id="scheduleChangesBody"></tbody>
+        </table>
+        <p class="empty-note" id="scheduleChangesEmpty" style="display:none;">No schedule changes yet.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=20261001"></script>
+<script>
+  async function requireSession() {
+    var { data } = await supabaseClient.auth.getSession();
+    if (!data || !data.session) {
+      window.location.href = "login.html";
+      return null;
+    }
+    return data.session;
+  }
+
+  document.getElementById("logoutBtn").addEventListener("click", async function () {
+    await recordLogout();
+    await supabaseClient.auth.signOut();
+    window.location.href = "login.html";
+  });
+
+  function formatLoginTime(iso) {
+    return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+
+  // ---------- Doctor Working Hours (delayed schedule changes) ----------
+  var doctorSelect = document.getElementById("scheduleDoctor");
+  var scheduleForm = document.getElementById("scheduleForm");
+  var scheduleError = document.getElementById("scheduleError");
+  var scheduleSuccess = document.getElementById("scheduleSuccess");
+  var scheduleSubmitBtn = document.getElementById("scheduleSubmitBtn");
+  var currentSession = null;
+
+  function showScheduleError(message) {
+    scheduleSuccess.classList.remove("show");
+    scheduleError.textContent = message;
+    scheduleError.classList.add("show");
+  }
+  function clearScheduleMessages() {
+    scheduleError.classList.remove("show");
+    scheduleSuccess.classList.remove("show");
+  }
+
+  async function loadDoctors() {
+    var { data, error } = await supabaseClient.from("doctors").select("id, name, active").eq("active", true).order("name");
+    if (error || !data) return;
+    doctorSelect.innerHTML = data.map(function (d) {
+      return '<option value="' + d.id + '">' + d.name + "</option>";
+    }).join("");
+  }
+
+  function formatTime(t) {
+    // t is "HH:MM:SS" from Postgres time — render as "HH:MM"
+    return t ? t.slice(0, 5) : "—";
+  }
+
+  async function loadScheduleChanges() {
+    var body = document.getElementById("scheduleChangesBody");
+    var empty = document.getElementById("scheduleChangesEmpty");
+
+    var { data, error } = await supabaseClient
+      .from("doctor_schedule_changes")
+      .select("id, new_start_time, new_end_time, effective_from, applied, doctors(name), profiles(full_name)")
+      .order("effective_from", { ascending: false })
+      .limit(20);
+
+    if (error || !data || data.length === 0) {
+      body.innerHTML = "";
+      empty.style.display = "block";
+      return;
+    }
+
+    empty.style.display = "none";
+    body.innerHTML = data.map(function (row) {
+      var doctorName = (row.doctors && row.doctors.name) || "Unknown doctor";
+      var changedBy = (row.profiles && row.profiles.full_name) || "—";
+      var status = row.applied
+        ? '<span class="pill applied">Applied</span>'
+        : '<span class="pill pending">Pending</span>';
+      return "<tr><td>" + doctorName + "</td><td>" + formatTime(row.new_start_time) + " – " + formatTime(row.new_end_time) + "</td><td>" + formatLoginTime(row.effective_from) + "</td><td>" + changedBy + "</td><td>" + status + "</td></tr>";
+    }).join("");
+  }
+
+  scheduleForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    clearScheduleMessages();
+
+    var doctorId = doctorSelect.value;
+    var start = document.getElementById("scheduleStart").value;   // "HH:MM"
+    var end = document.getElementById("scheduleEnd").value;       // "HH:MM"
+    var effectiveLocal = document.getElementById("scheduleEffective").value; // "YYYY-MM-DDTHH:MM"
+
+    if (!doctorId) {
+      showScheduleError("Please select a doctor.");
+      return;
+    }
+    if (!start || !end) {
+      showScheduleError("Please enter both a start and end time.");
+      return;
+    }
+    if (start >= end) {
+      showScheduleError("Start time must be before end time.");
+      return;
+    }
+    if (!effectiveLocal) {
+      showScheduleError("Please pick when this change should take effect.");
+      return;
+    }
+
+    var effectiveDate = new Date(effectiveLocal);
+    if (isNaN(effectiveDate.getTime())) {
+      showScheduleError("That effective date/time isn't valid.");
+      return;
+    }
+    if (effectiveDate.getTime() < Date.now()) {
+      showScheduleError("Effective time must be in the future.");
+      return;
+    }
+
+    scheduleSubmitBtn.disabled = true;
+
+    // This only ever inserts into doctor_schedule_changes — it never touches
+    // the live doctors row directly. The scheduled job (pg_cron) applies it
+    // once effective_from <= now(). RLS only allows a doctor's own login to
+    // write a row for their own doctor_id — staff can view but not submit.
+    var { error } = await supabaseClient.from("doctor_schedule_changes").insert({
+      doctor_id: doctorId,
+      new_start_time: start,
+      new_end_time: end,
+      effective_from: effectiveDate.toISOString(),
+      created_by: currentSession ? currentSession.user.id : null
+    });
+
+    scheduleSubmitBtn.disabled = false;
+
+    if (error) {
+      showScheduleError(error.message || "Could not schedule this change. Please try again.");
+      return;
+    }
+
+    scheduleForm.reset();
+    scheduleSuccess.classList.add("show");
+    loadScheduleChanges();
+  });
+
+    function initials(name) {
+    var parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "NH";
+    return (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
+  }
+
+  async function loadIdentityBadge(session) {
+    document.getElementById("userEmail").textContent = session.user.email;
+
+    var { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("role, full_name")
+      .eq("id", session.user.id)
+      .maybeSingle();
+
+    var displayName = "Team";
+    var role = profile && profile.role;
+
+    if (role === "doctor") {
+      var { data: doc } = await supabaseClient
+        .from("doctors")
+        .select("name")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      displayName = (doc && doc.name) || (profile && profile.full_name) || "Doctor";
+    } else if (profile && profile.full_name) {
+      displayName = profile.full_name;
+    }
+
+    document.getElementById("userDisplayName").textContent = displayName;
+    document.getElementById("userAvatar").textContent = initials(displayName === "Team" ? "Nirva Hospital" : displayName);
+    return role;
+  }
+
+(async function init() {
+    var session = await requireSession();
+    if (!session) return;
+    currentSession = session;
+    var userRole = await loadIdentityBadge(session);
+    loadDoctors();
+    loadScheduleChanges();
+  })();
+</script>
+
+</body>
+</html>

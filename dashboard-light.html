@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nirva — Staff Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg: #F5F7FA;
+  --sidebar-bg: #FFFFFF;
+  --card-bg: #FFFFFF;
+  --border: #EAEDF2;
+  --text-dark: #1A1F2B;
+  --text-muted: #7C8493;
+  --active-bg: #EEF2FF;
+  --active-text: #4F46E5;
+  --blue: #3B82F6;
+  --blue-soft: #EAF2FE;
+  --green: #22C55E;
+  --green-soft: #E9FBF0;
+  --red: #EF4444;
+  --red-soft: #FDECEC;
+  --purple: #8B5CF6;
+  --purple-soft: #F3EEFE;
+  --amber: #F59E0B;
+  --amber-soft: #FEF6E7;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg);
+  color: var(--text-dark);
+}
+
+.app { display: flex; min-height: 100vh; }
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+  padding: 22px 16px;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 24px; }
+
+.sidebar .brand .logo {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-size: 14px;
+}
+
+.sidebar .brand span { font-weight: 700; font-size: 16px; }
+
+.sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+
+.sidebar nav a {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+  border-radius: 8px; text-decoration: none; color: var(--text-muted);
+  font-size: 14px; font-weight: 500;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sidebar nav a:hover { background-color: #F5F6FA; color: var(--text-dark); }
+.sidebar nav a.active { background-color: var(--active-bg); color: var(--active-text); font-weight: 600; }
+.sidebar nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+.sidebar .bottom { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+.sidebar .bottom a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: var(--text-muted); font-size: 13px; font-weight: 500; }
+.sidebar .bottom a svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* ---------- Main ---------- */
+.main { flex: 1; min-width: 0; }
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 32px; background-color: var(--card-bg); border-bottom: 1px solid var(--border);
+}
+
+.topbar .search {
+  display: flex; align-items: center; gap: 10px;
+  background-color: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+  padding: 9px 14px; width: 320px; color: var(--text-muted); font-size: 13.5px;
+}
+.topbar .search input { width: 100%; border: 0; outline: 0; background: transparent; color: var(--text-dark); font: inherit; }
+.topbar .search input::placeholder { color: var(--text-muted); }
+.topbar .search svg { width: 16px; height: 16px; flex-shrink: 0; }
+.topbar .right { display: flex; align-items: center; gap: 18px; }
+
+.topbar .bell {
+  width: 36px; height: 36px; border-radius: 50%; background-color: var(--bg);
+  display: flex; align-items: center; justify-content: center; color: var(--text-muted); position: relative;
+}
+.topbar .bell svg { width: 17px; height: 17px; }
+.topbar .bell .dot {
+  position: absolute; top: 8px; right: 9px; width: 7px; height: 7px; border-radius: 50%;
+  background-color: var(--red); border: 1.5px solid white;
+}
+
+.topbar .user { display: flex; align-items: center; gap: 10px; }
+.topbar .user .avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  color: white; font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.topbar .user .info div:first-child { font-size: 13.5px; font-weight: 600; }
+.topbar .user .info div:last-child { font-size: 12px; color: var(--text-muted); }
+
+.content { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+
+/* ---------- Greeting ---------- */
+.greeting { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+.greeting h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+.greeting p { margin: 0; font-size: 13.5px; color: var(--text-muted); }
+.greeting .right-actions { display: flex; align-items: center; gap: 12px; }
+.greeting .date-chip {
+  background-color: var(--card-bg); border: 1px solid var(--border); color: var(--text-muted);
+  font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 10px;
+}
+
+.btn-primary {
+  background-color: var(--blue); color: white; border: none; border-radius: 10px;
+  font-size: 13.5px; font-weight: 600; padding: 10px 18px; cursor: pointer;
+  font-family: inherit; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary:hover { background-color: #2563EB; }
+.btn-primary svg { width: 16px; height: 16px; }
+
+/* ---------- Quick stats (real counts, computed from today's bookings) ---------- */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card {
+  background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 18px;
+}
+.stat-card .label { font-size: 12.5px; color: var(--text-muted); margin-bottom: 6px; }
+.stat-card .value { font-size: 26px; font-weight: 700; }
+.stat-card.c-blue .value { color: var(--blue); }
+.stat-card.c-amber .value { color: #92660A; }
+.stat-card.c-green .value { color: var(--green); }
+.stat-card.c-purple .value { color: var(--purple); }
+
+/* ---------- Board ---------- */
+.board-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.board-header h2 { font-size: 15.5px; font-weight: 700; margin: 0; }
+.board-header .subtitle { font-size: 12.5px; color: var(--text-muted); }
+
+.board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+
+.column {
+  background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 14px;
+  display: flex; flex-direction: column; gap: 10px; min-height: 160px;
+}
+.column-title {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+  padding: 4px 4px 8px; color: var(--text-muted);
+}
+.column-title .count {
+  background-color: var(--bg); border-radius: 999px; padding: 2px 9px; font-size: 11.5px; font-weight: 700; color: var(--text-dark);
+}
+.column.confirmed .column-title { color: #16803C; }
+.column.arrived .column-title { color: #1D4ED8; }
+.column.completed .column-title { color: var(--text-muted); }
+
+.booking-card {
+  border: 1px solid var(--border); border-radius: 10px; padding: 12px; background-color: var(--bg);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.booking-card.next-up { border-color: var(--blue); background-color: var(--blue-soft); box-shadow: 0 0 0 1px var(--blue); }
+.booking-card .row-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.booking-card .patient-name { font-size: 14px; font-weight: 700; }
+.booking-card .doctor-name { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.booking-card .time { font-size: 12.5px; font-weight: 700; color: var(--text-dark); white-space: nowrap; }
+.booking-card .next-up-tag { font-size: 10.5px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+
+.source-badge {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700;
+  padding: 3px 9px 3px 7px; border-radius: 999px; width: fit-content;
+}
+.source-badge svg { width: 12px; height: 12px; }
+.source-badge.ai_agent { background-color: var(--purple-soft); color: #6D28D9; }
+.source-badge.staff { background-color: var(--blue-soft); color: #1D4ED8; }
+
+.card-actions { display: flex; gap: 6px; margin-top: 2px; }
+.card-actions button {
+  flex: 1; font-family: inherit; font-size: 11.5px; font-weight: 600; padding: 7px 8px;
+  border-radius: 7px; border: 1px solid var(--border); background-color: white; color: var(--text-dark); cursor: pointer;
+}
+.card-actions button:hover { background-color: #F5F6FA; }
+.card-actions button.primary { background-color: var(--blue); color: white; border-color: var(--blue); }
+.card-actions button.primary:hover { background-color: #2563EB; }
+.card-actions button.danger { color: #B91C1C; }
+
+.empty-column { font-size: 12.5px; color: var(--text-muted); text-align: center; padding: 20px 8px; }
+
+/* ---------- Side rail (no-show / cancelled) ---------- */
+.side-card { background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+.side-card h3 { font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); margin: 0 0 10px; }
+.side-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.side-row:last-child { border-bottom: none; }
+.side-row .name { font-weight: 600; }
+.side-row .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.side-row .tag.no_show { background-color: var(--amber-soft); color: #92660A; }
+.side-row .tag.cancelled { background-color: var(--red-soft); color: #B91C1C; }
+
+/* ---------- Needs Callback list ---------- */
+.callback-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.callback-row:last-child { border-bottom: none; }
+.callback-row .info .phone { font-weight: 700; font-size: 13.5px; }
+.callback-row .info .meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.callback-row .missed-tag {
+  font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+  background-color: var(--amber-soft); color: #92660A; margin-right: 10px;
+}
+.callback-row button {
+  font-family: inherit; font-size: 12px; font-weight: 600; padding: 7px 12px;
+  border-radius: 7px; border: 1px solid var(--border); background-color: white; color: var(--text-dark); cursor: pointer; white-space: nowrap;
+}
+.callback-row button:hover { background-color: #F5F6FA; }
+
+/* ---------- Toast ---------- */
+#toastContainer { position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  background-color: #1A1F2B; color: white; padding: 14px 18px; border-radius: 12px;
+  font-size: 13.5px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  display: flex; align-items: center; gap: 10px; min-width: 260px;
+  animation: toast-in 0.25s ease-out;
+}
+.toast .toast-icon {
+  width: 28px; height: 28px; border-radius: 50%; background-color: var(--purple);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.toast.missed-call .toast-icon { background-color: var(--amber); }
+.toast .toast-icon svg { width: 15px; height: 15px; }
+@keyframes toast-in { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+/* ---------- Modal (add booking) ---------- */
+.modal-overlay {
+  position: fixed; inset: 0; background-color: rgba(20,24,40,0.45); z-index: 900;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.modal { background-color: white; border-radius: 16px; padding: 24px; width: 100%; max-width: 420px; }
+.modal h2 { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
+.modal p.hint { margin: 0 0 18px; font-size: 12.5px; color: var(--text-muted); }
+.modal .form-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.modal .form-field label { font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+.modal .form-field input, .modal .form-field select {
+  border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px;
+  font-size: 13.5px; color: var(--text-dark); font-family: inherit;
+}
+.modal .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+.modal .modal-actions button { flex: 1; padding: 10px; border-radius: 9px; font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.modal .modal-actions .cancel { background-color: var(--bg); border: 1px solid var(--border); color: var(--text-dark); }
+.modal .modal-actions .submit { background-color: var(--blue); border: none; color: white; }
+.modal-error { color: #B91C1C; font-size: 12.5px; margin-bottom: 10px; display: none; }
+
+@media (max-width: 1000px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .board { grid-template-columns: 1fr; }
+}
+</style>
+<link rel="stylesheet" href="clinic-theme.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">N</div>
+      <span>Nirva</span>
+    </div>
+    <nav>
+      <a href="dashboard-light.html" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a href="calendar.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Calendar
+      </a>
+      <a href="callback-requests.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 2 16 8 22 8"/><line x1="22" y1="2" x2="16" y2="8"/><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg>
+        Callback Requests
+      </a>
+      <a href="calls.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg>
+        Call Analytics
+      </a>
+      <a href="patients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Patients
+      </a>
+    </nav>
+    <div class="bottom">
+      <a href="doctor-schedule.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Doctor Schedule
+      </a>
+      <a href="doctor-leave.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/></svg>
+        Doctor Leave
+      </a>
+      <a href="clinic-info.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        Clinic Info
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+
+    <div class="topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="bookingSearch" type="search" autocomplete="off" placeholder="Search patient, doctor, phone, or source…" aria-label="Search today's appointments">
+      </div>
+      <div class="right">
+        <div class="bell">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="dot"></span>
+        </div>
+        <div class="user">
+          <div class="avatar" id="userAvatar">NH</div>
+          <div class="info">
+            <div id="userDisplayName">Loading...</div>
+            <div id="userEmail" style="font-size:12px;color:var(--text-muted);"></div>
+          </div>
+        </div>
+        <button id="logoutBtn" style="font-size:12.5px;font-family:inherit;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background-color:var(--bg);color:var(--text-muted);cursor:pointer;">Log out</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Greeting -->
+      <div class="greeting">
+        <div>
+          <h1 id="greetingText">Good day, Team</h1>
+          <p>Today's schedule — updates live as bookings come in.</p>
+        </div>
+        <div class="right-actions">
+          <div class="date-chip" id="dateChip">Today</div>
+          <a href="calls.html?mode=demo" style="font-size:13px;font-weight:600;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--active-text);text-decoration:none;">View 100-call demo</a>
+          <button class="btn-primary" id="addBookingBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            Add Booking
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick stats: real counts from today's bookings -->
+      <div class="stats-grid">
+        <div class="stat-card c-blue">
+          <div class="label">Total Today</div>
+          <div class="value" id="statTotal">—</div>
+        </div>
+        <div class="stat-card c-amber">
+          <div class="label">Confirmed</div>
+          <div class="value" id="statConfirmed">—</div>
+        </div>
+        <div class="stat-card c-purple">
+          <div class="label">Arrived</div>
+          <div class="value" id="statArrived">—</div>
+        </div>
+        <div class="stat-card c-green">
+          <div class="label">Completed</div>
+          <div class="value" id="statCompleted">—</div>
+        </div>
+      </div>
+
+      <!-- Needs Callback: missed calls not yet followed up on -->
+      <div class="card" id="callbackCardWrap" style="display:none;">
+        <div class="card-header">
+          <h2>Needs Callback</h2>
+          <span class="subtitle">Missed calls the AI couldn't complete</span>
+        </div>
+        <div id="callbackList"></div>
+      </div>
+
+      <!-- Board -->
+      <div class="board-header">
+        <h2>Today's Schedule</h2>
+        <span class="subtitle" id="boardSubtitle">Loading...</span>
+      </div>
+
+      <div class="board">
+        <div class="column confirmed">
+          <div class="column-title">Confirmed <span class="count" id="countConfirmed">0</span></div>
+          <div id="colConfirmed"></div>
+        </div>
+        <div class="column arrived">
+          <div class="column-title">Arrived <span class="count" id="countArrived">0</span></div>
+          <div id="colArrived"></div>
+        </div>
+        <div class="column completed">
+          <div class="column-title">Completed <span class="count" id="countCompleted">0</span></div>
+          <div id="colCompleted"></div>
+        </div>
+      </div>
+
+      <!-- No-show / Cancelled side rail -->
+      <div class="side-card" id="sideCardWrap" style="display:none;">
+        <h3>No-show / Cancelled Today</h3>
+        <div id="sideRailList"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div id="toastContainer"></div>
+
+<!-- Add Booking Modal -->
+<div class="modal-overlay" id="modalOverlay" style="display:none;">
+  <div class="modal">
+    <h2>Add Booking</h2>
+    <p class="hint">New patient? Enter their name and full international phone number (for example, +919876543210). The secure booking service creates or matches their record.</p>
+    <div class="modal-error" id="modalError"></div>
+    <form id="addBookingForm">
+      <div class="form-field">
+        <label>Patient Name</label>
+        <input type="text" id="fPatientName" required>
+      </div>
+      <div class="form-field">
+        <label>Patient Phone</label>
+        <input type="tel" id="fPatientPhone" inputmode="tel" autocomplete="tel" placeholder="+919876543210" pattern="\+[1-9][0-9]{6,14}" title="Use international format, for example +919876543210" required>
+      </div>
+      <div class="form-field">
+        <label>Doctor</label>
+        <select id="fDoctor" required></select>
+      </div>
+      <div class="form-field">
+        <label>Appointment Time</label>
+        <input type="datetime-local" id="fTime" required>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="modalCancelBtn">Cancel</button>
+        <button type="submit" class="submit">Add Booking</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Confirm Modal (reused for anything consequential, e.g. Cancel) -->
+<div class="modal-overlay" id="confirmOverlay" style="display:none;">
+  <div class="modal" style="max-width: 360px;">
+    <h2 id="confirmTitle">Are you sure?</h2>
+    <p class="hint" id="confirmMessage" style="margin-bottom: 20px;"></p>
+    <div class="modal-actions">
+      <button type="button" class="cancel" id="confirmCancelBtn">No, go back</button>
+      <button type="button" class="submit" id="confirmYesBtn" style="background-color: var(--red);">Yes, confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="config.js?v=20261001"></script>
+<script>
+  // ---------- Session guard ----------
+  async function requireSession() {
+    var { data } = await supabaseClient.auth.getSession();
+    if (!data || !data.session) {
+      window.location.href = "login.html";
+      return null;
+    }
+    return data.session;
+  }
+
+  document.getElementById("logoutBtn").addEventListener("click", async function () {
+    await recordLogout();
+    await supabaseClient.auth.signOut();
+    window.location.href = "login.html";
+  });
+
+  // ---------- Date helpers ----------
+  function startOfToday() {
+    var d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  function startOfTomorrow() {
+    var d = startOfToday();
+    d.setDate(d.getDate() + 1);
+    return d;
+  }
+  function formatTime(iso) {
+    return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  }
+
+  // Never interpolate patient or clinic data into HTML without encoding it.
+  // This protects staff browsers if imported data contains markup.
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function isE164Phone(value) {
+    return /^\+[1-9][0-9]{6,14}$/.test(String(value || ""));
+  }
+
+  function newIdempotencyKey() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
+    if (window.crypto && typeof window.crypto.getRandomValues === "function") {
+      var bytes = window.crypto.getRandomValues(new Uint8Array(16));
+      bytes[6] = (bytes[6] & 15) | 64;
+      bytes[8] = (bytes[8] & 63) | 128;
+      var hex = Array.from(bytes, function (byte) { return byte.toString(16).padStart(2, "0"); }).join("");
+      return hex.slice(0, 8) + "-" + hex.slice(8, 12) + "-" + hex.slice(12, 16) + "-" + hex.slice(16, 20) + "-" + hex.slice(20);
+    }
+    return null;
+  }
+
+  // ---------- Confirm modal ----------
+  function confirmDialog(message) {
+    return new Promise(function (resolve) {
+      document.getElementById("confirmMessage").textContent = message;
+      var overlay = document.getElementById("confirmOverlay");
+      var yesBtn = document.getElementById("confirmYesBtn");
+      var noBtn = document.getElementById("confirmCancelBtn");
+      overlay.style.display = "flex";
+
+      function cleanup(result) {
+        overlay.style.display = "none";
+        yesBtn.removeEventListener("click", onYes);
+        noBtn.removeEventListener("click", onNo);
+        resolve(result);
+      }
+      function onYes() { cleanup(true); }
+      function onNo() { cleanup(false); }
+      yesBtn.addEventListener("click", onYes);
+      noBtn.addEventListener("click", onNo);
+    });
+  }
+
+  // ---------- Toast ----------
+  function showToast(message, variant) {
+    var container = document.getElementById("toastContainer");
+    var toast = document.createElement("div");
+    toast.className = "toast" + (variant ? " " + variant : "");
+    var icon = variant === "missed-call"
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.86.31 1.79.53 2.73.66A2 2 0 0 1 22 16.92V19a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 3 5.18 2 2 0 0 1 5 3h2.08a2 2 0 0 1 2 1.72c.13.94.35 1.87.66 2.73a2 2 0 0 1-.45 2.11z"/><path d="m22 2-6 6M16 2l6 6"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16h.01M16 16h.01"/></svg>';
+    toast.innerHTML = '<div class="toast-icon">' + icon + "</div><div>" + message + "</div>";
+    container.appendChild(toast);
+    setTimeout(function () { toast.remove(); }, 6000);
+  }
+
+  // A short, soft two-tone beep, built with the Web Audio API so no external
+  // sound file is needed.
+  function playChime() {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [880, 1175].forEach(function (freq, i) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        var start = ctx.currentTime + i * 0.12;
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.15, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.3);
+        osc.start(start);
+        osc.stop(start + 0.3);
+      });
+    } catch (e) { /* audio not available, ignore */ }
+  }
+
+  // ---------- Source badge ----------
+  function sourceBadge(source) {
+    if (source === "ai_agent") {
+      return '<span class="source-badge ai_agent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16h.01M16 16h.01"/></svg>AI Agent</span>';
+    }
+    return '<span class="source-badge staff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a6 6 0 0 1 12 0v2"/></svg>Staff</span>';
+  }
+
+  // ---------- Booking card ----------
+  function bookingCard(b, isNextUp) {
+    var patientName = (b.patients && b.patients.name) || b.patient_name_snapshot || "Unknown patient";
+    var doctorName = (b.doctors && b.doctors.name) || "Unknown doctor";
+    var actions = "";
+    if (b.status === "confirmed") {
+      actions =
+        '<div class="card-actions">' +
+        '<button class="primary" data-action="arrived" data-id="' + escapeHtml(b.id) + '">Mark Arrived</button>' +
+        '<button data-action="no_show" data-id="' + escapeHtml(b.id) + '">No-show</button>' +
+        '<button class="danger" data-action="cancelled" data-id="' + escapeHtml(b.id) + '">Cancel</button>' +
+        "</div>";
+    } else if (b.status === "arrived") {
+      actions =
+        '<div class="card-actions">' +
+        '<button class="primary" data-action="completed" data-id="' + escapeHtml(b.id) + '">Mark Completed</button>' +
+        '<button data-action="confirmed" data-id="' + escapeHtml(b.id) + '">Undo</button>' +
+        "</div>";
+    } else if (b.status === "completed") {
+      actions =
+        '<div class="card-actions">' +
+        '<button data-action="arrived" data-id="' + escapeHtml(b.id) + '">Undo</button>' +
+        "</div>";
+    }
+    return (
+      '<div class="booking-card' + (isNextUp ? " next-up" : "") + '">' +
+      '<div class="row-top">' +
+      '<div><div class="patient-name">' + escapeHtml(patientName) + '</div><div class="doctor-name">' + escapeHtml(doctorName) + "</div></div>" +
+      '<div class="time">' + formatTime(b.appointment_time) + "</div>" +
+      "</div>" +
+      (isNextUp ? '<div class="next-up-tag">Next Up</div>' : "") +
+      sourceBadge(b.source) +
+      actions +
+      "</div>"
+    );
+  }
+
+  // ---------- Load + render board ----------
+  var currentBookings = [];
+  var bookingSearchQuery = "";
+
+  function matchesBookingSearch(booking, query) {
+    if (!query) return true;
+    var patient = booking.patients || {};
+    var doctor = booking.doctors || {};
+    var searchable = [
+      patient.name, patient.phone, patient.phone_e164,
+      booking.patient_name_snapshot, booking.phone_e164_snapshot,
+      doctor.name, doctor.specialty, booking.source, booking.status
+    ].filter(Boolean).join(" ").toLowerCase();
+    return searchable.indexOf(query) !== -1;
+  }
+
+  async function loadBoard() {
+    var subtitle = document.getElementById("boardSubtitle");
+    var { data, error } = await supabaseClient
+      .from("bookings")
+      .select("*, patients(name, phone, phone_e164), doctors(name, specialty)")
+      .gte("appointment_time", startOfToday().toISOString())
+      .lt("appointment_time", startOfTomorrow().toISOString())
+      .order("appointment_time", { ascending: true });
+
+    if (error) {
+      subtitle.textContent = "Could not load today's schedule.";
+      return;
+    }
+
+    currentBookings = data || [];
+    renderBoard();
+  }
+
+  function renderBoard() {
+    var subtitle = document.getElementById("boardSubtitle");
+    var visibleBookings = currentBookings.filter(function (b) { return matchesBookingSearch(b, bookingSearchQuery); });
+    subtitle.textContent = bookingSearchQuery
+      ? visibleBookings.length + " of " + currentBookings.length + " appointments match your search"
+      : currentBookings.length + " appointment" + (currentBookings.length === 1 ? "" : "s") + " today";
+
+    var confirmed = visibleBookings.filter(function (b) { return b.status === "confirmed"; });
+    var arrived = visibleBookings.filter(function (b) { return b.status === "arrived"; });
+    var completed = visibleBookings.filter(function (b) { return b.status === "completed"; });
+    var sideRail = visibleBookings.filter(function (b) { return b.status === "no_show" || b.status === "cancelled"; });
+
+    // "Next up" = the confirmed booking with the soonest upcoming appointment time.
+    var now = new Date();
+    var nextUpId = null;
+    var upcomingConfirmed = confirmed.filter(function (b) { return new Date(b.appointment_time) >= now; });
+    if (upcomingConfirmed.length > 0) {
+      nextUpId = upcomingConfirmed[0].id; // already sorted ascending by the query
+    }
+
+    document.getElementById("countConfirmed").textContent = confirmed.length;
+    document.getElementById("countArrived").textContent = arrived.length;
+    document.getElementById("countCompleted").textContent = completed.length;
+
+    document.getElementById("colConfirmed").innerHTML = confirmed.length
+      ? confirmed.map(function (b) { return bookingCard(b, b.id === nextUpId); }).join("")
+      : '<div class="empty-column">No confirmed bookings.</div>';
+    document.getElementById("colArrived").innerHTML = arrived.length
+      ? arrived.map(function (b) { return bookingCard(b, false); }).join("")
+      : '<div class="empty-column">No one has arrived yet.</div>';
+    document.getElementById("colCompleted").innerHTML = completed.length
+      ? completed.map(function (b) { return bookingCard(b, false); }).join("")
+      : '<div class="empty-column">No completed visits yet.</div>';
+
+    var sideWrap = document.getElementById("sideCardWrap");
+    if (sideRail.length > 0) {
+      sideWrap.style.display = "block";
+      document.getElementById("sideRailList").innerHTML = sideRail.map(function (b) {
+        var patientName = (b.patients && b.patients.name) || b.patient_name_snapshot || "Unknown patient";
+        return '<div class="side-row"><span class="name">' + escapeHtml(patientName) + " — " + formatTime(b.appointment_time) + '</span>' +
+          '<span style="display:flex;align-items:center;gap:8px;">' +
+          '<span class="tag ' + b.status + '">' + (b.status === "no_show" ? "No-show" : "Cancelled") + "</span>" +
+          '<button data-action="confirmed" data-id="' + escapeHtml(b.id) + '" style="font-family:inherit;font-size:11px;font-weight:600;padding:5px 10px;border-radius:7px;border:1px solid var(--border);background-color:white;color:var(--text-dark);cursor:pointer;">Undo</button>' +
+          "</span></div>";
+      }).join("");
+    } else {
+      sideWrap.style.display = "none";
+    }
+
+    document.getElementById("statTotal").textContent = currentBookings.length;
+    document.getElementById("statConfirmed").textContent = confirmed.length;
+    document.getElementById("statArrived").textContent = arrived.length;
+    document.getElementById("statCompleted").textContent = completed.length;
+  }
+
+  document.getElementById("bookingSearch").addEventListener("input", function (event) {
+    bookingSearchQuery = event.target.value.trim().toLowerCase();
+    renderBoard();
+  });
+
+  // ---------- Protected staff actions (event delegation) ----------
+  // Request IDs persist for a retry after a lost response, but are discarded
+  // after a confirmed success so later deliberate actions receive a new ID.
+  var staffActionRequestIds = {};
+
+  function staffActionError(code, target) {
+    var messages = {
+      booking_not_found: "This booking is no longer available.",
+      callback_not_found: "This callback is no longer available.",
+      invalid_action: "That action is not available.",
+      invalid_transition: "This item has already changed. Refreshing may help.",
+      unauthorized: "Your account is not allowed to make this change."
+    };
+    return messages[code] || (target === "callback" ? "The callback could not be completed. Please try again." : "The booking could not be updated. Please try again.");
+  }
+
+  async function invokeProtectedStaffAction(functionName, requestKey, body, target) {
+    if (!staffActionRequestIds[requestKey]) staffActionRequestIds[requestKey] = newIdempotencyKey();
+    body.idempotency_key = staffActionRequestIds[requestKey];
+    var { data, error } = await supabaseClient.functions.invoke(functionName, { body: body });
+    if (error) throw new Error(target === "callback" ? "The callback could not be completed. Please try again." : "The booking could not be updated. Please try again.");
+    if (!data || data.success !== true) throw new Error(staffActionError(data && data.error_code, target));
+    delete staffActionRequestIds[requestKey];
+  }
+
+  // ---------- Status change buttons (event delegation) ----------
+  document.querySelector(".content").addEventListener("click", async function (e) {
+    var btn = e.target.closest("button[data-action]");
+    if (!btn) return;
+    var id = btn.getAttribute("data-id");
+    var action = btn.getAttribute("data-action");
+    btn.disabled = true;
+
+    if (btn.getAttribute("data-type") === "callback") {
+      try {
+        await invokeProtectedStaffAction("staff-complete-callback", "call:" + id, {
+          target_type: "call", target_id: id
+        }, "callback");
+      } catch (err) {
+        alert(err.message || "Could not update callback. Please try again.");
+        btn.disabled = false;
+        return;
+      }
+      loadCallbackList();
+      return;
+    }
+
+    // Cancelling is the most consequential click (drops the booking out of
+    // the active board), so it gets a confirmation step. Other actions
+    // (Arrived/Completed/No-show/Undo) are all instantly reversible via the
+    // Undo button, so they don't need one.
+    if (action === "cancelled" && !(await confirmDialog("Cancel this booking? You can undo this afterward from the No-show/Cancelled list."))) {
+      btn.disabled = false;
+      return;
+    }
+
+    try {
+      await invokeProtectedStaffAction("staff-appointment-action", "booking:" + id + ":" + action, {
+        booking_id: id, action: action
+      }, "booking");
+    } catch (err) {
+      alert(err.message || "Could not update booking. Please try again.");
+      btn.disabled = false;
+      return;
+    }
+    loadBoard();
+  });
+
+  // ---------- Needs Callback list ----------
+  function formatCallTime(iso) {
+    return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+
+  function callbackReasonLabel(outcome) {
+    return outcome === "callback_requested" ? "Doctor Unavailable" : "Missed Call";
+  }
+
+  async function loadCallbackList() {
+    var wrap = document.getElementById("callbackCardWrap");
+    var { data, error } = await supabaseClient
+      .from("calls")
+      .select("id, phone_number, caller_name, outcome, created_at, patients(name)")
+      .in("outcome", ["missed", "callback_requested"])
+      .eq("callback_done", false)
+      .order("created_at", { ascending: false });
+
+    if (error || !data || data.length === 0) {
+      wrap.style.display = "none";
+      return;
+    }
+
+    wrap.style.display = "block";
+    document.getElementById("callbackList").innerHTML = data.map(function (c) {
+      var who = (c.patients ? c.patients.name : null) || c.caller_name || "Unknown caller";
+      var showPhoneSeparately = c.phone_number && who !== c.phone_number;
+      var reason = callbackReasonLabel(c.outcome);
+      return '<div class="callback-row">' +
+        '<div class="info"><div class="phone">' + escapeHtml(who) + (showPhoneSeparately ? " — " + escapeHtml(c.phone_number) : "") + '</div><div class="meta">' + escapeHtml(reason) + " · " + formatCallTime(c.created_at) + '</div></div>' +
+        '<div style="display:flex;align-items:center;">' +
+        '<span class="missed-tag">' + reason + '</span>' +
+        '<button data-type="callback" data-action="done" data-id="' + escapeHtml(c.id) + '">Mark Called Back</button>' +
+        '</div></div>';
+    }).join("");
+  }
+
+  // ---------- Add Booking modal ----------
+  var overlay = document.getElementById("modalOverlay");
+  var modalError = document.getElementById("modalError");
+  // Preserve this key through a retry: if the first request succeeded but its
+  // response was lost, the server returns the original booking instead of
+  // creating a duplicate.
+  var bookingRequestId = null;
+
+  document.getElementById("addBookingBtn").addEventListener("click", function () {
+    modalError.style.display = "none";
+    document.getElementById("addBookingForm").reset();
+    bookingRequestId = newIdempotencyKey();
+    // Default the time picker to "now, rounded to the next 15 min" so staff
+    // usually just need to pick a doctor.
+    var d = new Date();
+    d.setMinutes(Math.ceil(d.getMinutes() / 15) * 15, 0, 0);
+    var pad = function (n) { return String(n).padStart(2, "0"); };
+    var localValue = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+    document.getElementById("fTime").value = localValue;
+    overlay.style.display = "flex";
+  });
+  document.getElementById("modalCancelBtn").addEventListener("click", function () {
+    overlay.style.display = "none";
+    bookingRequestId = null;
+  });
+
+  var doctorById = {};
+
+  function minutesFromTime(value) {
+    var parts = String(value || "").slice(0, 5).split(":");
+    return Number(parts[0]) * 60 + Number(parts[1]);
+  }
+
+  function validateStaffBookingTime(doctorId, timeValue) {
+    var doctor = doctorById[doctorId];
+    var appointment = new Date(timeValue);
+    if (!doctor || isNaN(appointment.getTime())) return "Choose a doctor and a valid appointment time.";
+    if (appointment.getMinutes() % 15 !== 0) return "Appointments must start on a 15-minute slot.";
+    var days = String(doctor.working_days || "").split(",").map(function (d) { return Number(d.trim()); }).filter(function (d) { return !isNaN(d); });
+    if (days.length && days.indexOf(appointment.getDay()) === -1) return doctor.name + " is not scheduled to work on that day.";
+    var slotStart = appointment.getHours() * 60 + appointment.getMinutes();
+    var startsAt = minutesFromTime(doctor.start_time);
+    var endsAt = minutesFromTime(doctor.end_time);
+    if (!isFinite(startsAt) || !isFinite(endsAt)) return "This doctor's working hours are not configured yet.";
+    if (slotStart < startsAt || slotStart + 15 > endsAt) return doctor.name + " is available only from " + String(doctor.start_time).slice(0, 5) + " to " + String(doctor.end_time).slice(0, 5) + ".";
+    return null;
+  }
+
+  async function loadDoctorsIntoSelect() {
+    var select = document.getElementById("fDoctor");
+    var { data, error } = await supabaseClient.from("doctors").select("id, name, specialty, start_time, end_time, working_days").eq("active", true).order("name");
+    if (error || !data) return;
+    doctorById = Object.fromEntries(data.map(function (d) { return [d.id, d]; }));
+    select.innerHTML = data.map(function (d) {
+      return '<option value="' + escapeHtml(d.id) + '">' + escapeHtml(d.name) + (d.specialty ? " — " + escapeHtml(d.specialty) : "") + "</option>";
+    }).join("");
+  }
+
+  // The browser never creates patients or bookings directly. The protected
+  // Edge Function owns identity matching, schedule/leave checks, slot locking,
+  // audit events, and the database transaction.
+  async function createStaffBooking(payload) {
+    var { data, error } = await supabaseClient.functions.invoke("staff-book-appointment", {
+      body: payload
+    });
+    if (error) throw error;
+    if (!data || data.success !== true) throw new Error((data && (data.resultText || data.error || data.message)) || "The booking could not be saved.");
+    return data;
+  }
+
+  document.getElementById("addBookingForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    modalError.style.display = "none";
+    var submitBtn = e.target.querySelector(".submit");
+    submitBtn.disabled = true;
+
+    var name = document.getElementById("fPatientName").value.trim();
+    var phone = document.getElementById("fPatientPhone").value.trim();
+    var doctorId = document.getElementById("fDoctor").value;
+    var timeValue = document.getElementById("fTime").value;
+
+    try {
+      var scheduleError = validateStaffBookingTime(doctorId, timeValue);
+      if (scheduleError) throw new Error(scheduleError);
+      if (!isE164Phone(phone)) throw new Error("Enter the phone number in international format, for example +919876543210.");
+      if (!bookingRequestId) throw new Error("This browser cannot create a secure booking request. Please use a current browser and try again.");
+      await createStaffBooking({
+        patient_name: name,
+        phone_number: phone,
+        doctor_name: doctorById[doctorId].name,
+        // datetime-local is deliberately sent without the viewer's timezone.
+        // The booking service interprets this clinic wall-clock value as IST.
+        appointment_datetime: timeValue,
+        idempotency_key: bookingRequestId
+      });
+
+      overlay.style.display = "none";
+      bookingRequestId = null;
+      loadBoard();
+    } catch (err) {
+      modalError.textContent = "Could not add booking: " + err.message;
+      modalError.style.display = "block";
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  // ---------- Realtime: live bookings feed ----------
+  function subscribeToNewBookings() {
+    supabaseClient
+      .channel("bookings-live")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "bookings" }, function (payload) {
+        var row = payload.new;
+        var apptDate = new Date(row.appointment_time);
+        if (apptDate >= startOfToday() && apptDate < startOfTomorrow()) {
+          if (row.source === "ai_agent") {
+            showToast("New booking from AI Agent");
+            playChime();
+          }
+          loadBoard();
+        }
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "bookings" }, function () {
+        loadBoard();
+      })
+      .subscribe();
+  }
+
+  // ---------- Realtime: missed-call alerts ----------
+  function subscribeToMissedCalls() {
+    supabaseClient
+      .channel("calls-live")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "calls" }, function (payload) {
+        if (payload.new.outcome === "missed") {
+          showToast("AI missed a call — needs a callback", "missed-call");
+          playChime();
+        } else if (payload.new.outcome === "callback_requested") {
+          showToast("Doctor unavailable — patient needs a callback", "missed-call");
+          playChime();
+        }
+        loadCallbackList();
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "calls" }, function () {
+        loadCallbackList();
+      })
+      .subscribe();
+  }
+
+  // ---------- Init ----------
+  function initials(name) {
+    var parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "NH";
+    return (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
+  }
+
+  async function loadIdentityAndGreeting(session) {
+    document.getElementById("userEmail").textContent = session.user.email;
+
+    var { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("role, full_name")
+      .eq("id", session.user.id)
+      .maybeSingle();
+
+    var displayName = "Team";
+    var role = profile && profile.role;
+
+    if (role === "doctor") {
+      // A doctor's own login is tied to exactly one doctors row -- use the real,
+      // canonical name from there rather than trusting a separately-typed full_name.
+      var { data: doc } = await supabaseClient
+        .from("doctors")
+        .select("name")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      displayName = (doc && doc.name) || (profile && profile.full_name) || "Doctor";
+    } else if (profile && profile.full_name) {
+      displayName = profile.full_name;
+    }
+
+    document.getElementById("userDisplayName").textContent = displayName;
+    document.getElementById("userAvatar").textContent = initials(displayName === "Team" ? "Nirva Hospital" : displayName);
+
+    var hour = new Date().getHours();
+    var greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+    document.getElementById("greetingText").textContent = greeting + ", " + displayName;
+    return role;
+  }
+
+  (async function init() {
+    var session = await requireSession();
+    if (!session) return;
+
+    var userRole = await loadIdentityAndGreeting(session);
+    if (userRole === "doctor") {
+      var addBtn = document.getElementById("addBookingBtn");
+      if (addBtn) addBtn.style.display = "none";
+    }
+    loadDoctorsIntoSelect();
+    loadBoard();
+    loadCallbackList();
+    subscribeToNewBookings();
+    subscribeToMissedCalls();
+  })();
+
+  document.getElementById("dateChip").textContent = new Date().toLocaleDateString("en-US", {
+    weekday: "long", month: "long", day: "numeric"
+  });
+</script>
+
+</body>
+</html>

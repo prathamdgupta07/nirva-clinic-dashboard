@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nirva — Patients</title>
+<style>
+:root {
+  --bg: #F5F7FA; --sidebar-bg: #FFFFFF; --card-bg: #FFFFFF; --border: #EAEDF2;
+  --text-dark: #1A1F2B; --text-muted: #7C8493; --active-bg: #EEF2FF; --active-text: #4F46E5;
+  --blue: #3B82F6; --blue-soft: #EAF2FE; --green: #22C55E; --green-soft: #E9FBF0;
+  --red: #EF4444; --red-soft: #FDECEC; --purple: #8B5CF6; --purple-soft: #F3EEFE;
+  --amber: #F59E0B; --amber-soft: #FEF6E7;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text-dark); }
+.app { display: flex; min-height: 100vh; }
+.sidebar { width: 240px; flex-shrink: 0; background-color: var(--sidebar-bg); border-right: 1px solid var(--border); padding: 22px 16px; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.sidebar .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 24px; }
+.sidebar .brand .logo { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--blue), var(--purple)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 14px; }
+.sidebar .brand span { font-weight: 700; font-size: 16px; }
+.sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+.sidebar nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: var(--text-muted); font-size: 14px; font-weight: 500; transition: background-color 0.15s ease, color 0.15s ease; }
+.sidebar nav a:hover { background-color: #F5F6FA; color: var(--text-dark); }
+.sidebar nav a.active { background-color: var(--active-bg); color: var(--active-text); font-weight: 600; }
+.sidebar nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
+.sidebar .bottom { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+.sidebar .bottom a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: var(--text-muted); font-size: 13px; font-weight: 500; }
+.sidebar .bottom a svg { width: 16px; height: 16px; flex-shrink: 0; }
+.main { flex: 1; min-width: 0; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; background-color: var(--card-bg); border-bottom: 1px solid var(--border); }
+.topbar .search { display: flex; align-items: center; gap: 10px; background-color: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 9px 14px; width: 320px; color: var(--text-muted); font-size: 13.5px; }
+.topbar .search svg { width: 16px; height: 16px; flex-shrink: 0; }
+.topbar .right { display: flex; align-items: center; gap: 18px; }
+.topbar .bell { width: 36px; height: 36px; border-radius: 50%; background-color: var(--bg); display: flex; align-items: center; justify-content: center; color: var(--text-muted); position: relative; }
+.topbar .bell svg { width: 17px; height: 17px; }
+.topbar .bell .dot { position: absolute; top: 8px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background-color: var(--red); border: 1.5px solid white; }
+.topbar .user { display: flex; align-items: center; gap: 10px; }
+.topbar .user .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--purple)); color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.topbar .user .info div:first-child { font-size: 13.5px; font-weight: 600; }
+.topbar .user .info div:last-child { font-size: 12px; color: var(--text-muted); }
+.content { padding: 28px 32px; max-width: 1280px; margin: 0 auto; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+.page-header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+.page-header p { margin: 0; font-size: 13.5px; color: var(--text-muted); }
+.card { background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+.card-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.card-header h2 { font-size: 15.5px; font-weight: 700; margin: 0; }
+.card-header .subtitle { font-size: 12.5px; color: var(--text-muted); }
+table { width: 100%; border-collapse: collapse; }
+thead th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+tbody td { padding: 12px 10px; font-size: 13.5px; border-bottom: 1px solid var(--border); }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background-color: #FAFBFD; cursor: pointer; }
+.patient-row { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.avatar-sm { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: white; flex-shrink: 0; }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 13.5px; }
+
+/* ---------- Patient detail (call history) ---------- */
+.modal-overlay { position: fixed; inset: 0; background-color: rgba(20,24,40,0.45); z-index: 900; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal { background-color: white; border-radius: 16px; padding: 24px; width: 100%; max-width: 480px; max-height: 80vh; overflow-y: auto; }
+.modal h2 { font-size: 17px; font-weight: 700; margin: 0 0 2px; }
+.modal .sub { font-size: 12.5px; color: var(--text-muted); margin: 0 0 18px; }
+.modal .close-btn { float: right; background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; }
+.call-history-empty { font-size: 13px; color: var(--text-muted); padding: 16px 0; }
+.call-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.call-row:last-child { border-bottom: none; }
+.call-row .meta { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+.call-row .tag { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+.call-row .tag.booked { background-color: var(--green-soft); color: #16803C; }
+.call-row .tag.missed { background-color: var(--amber-soft); color: #92660A; }
+.call-row .tag.no_action { background-color: var(--bg); color: var(--text-muted); }
+.call-row .tag.confirmed { background-color: var(--blue-soft); color: #1D4ED8; }
+.call-row .tag.arrived { background-color: var(--purple-soft); color: #6D28D9; }
+.call-row .tag.completed { background-color: var(--green-soft); color: #16803C; }
+.call-row .tag.cancelled { background-color: var(--red-soft); color: #B91C1C; }
+.call-row .tag.no_show { background-color: var(--amber-soft); color: #92660A; }
+.call-row .tag.rescheduled { background-color: var(--amber-soft); color: #92660A; }
+</style>
+<link rel="stylesheet" href="clinic-theme.css">
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="logo">N</div><span>Nirva</span></div>
+    <nav>
+      <a href="dashboard-light.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a href="calendar.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Calendar
+      </a>
+      <a href="callback-requests.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 2 16 8 22 8"/><line x1="22" y1="2" x2="16" y2="8"/><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg>
+        Callback Requests
+      </a>
+      <a href="calls.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg>
+        Calls
+      </a>
+      <a href="patients.html" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Patients
+      </a>
+    </nav>
+    <div class="bottom">
+      <a href="doctor-schedule.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Doctor Schedule
+      </a>
+      <a href="doctor-leave.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/></svg>
+        Doctor Leave
+      </a>
+      <a href="clinic-info.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        Clinic Info
+      </a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        Search patients, appointments...
+      </div>
+      <div class="right">
+        <div class="bell">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="dot"></span>
+        </div>
+        <div class="user">
+          <div class="avatar" id="userAvatar">NH</div>
+          <div class="info"><div id="userDisplayName">Loading...</div><div id="userEmail" style="font-size:12px;color:var(--text-muted);"></div></div>
+        </div>
+        <button id="logoutBtn" style="font-size:12.5px;font-family:inherit;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background-color:var(--bg);color:var(--text-muted);cursor:pointer;">Log out</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-header">
+        <div>
+          <h1>Patients</h1>
+          <p>Everyone your clinic has been in touch with.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>All Patients</h2>
+          <span class="subtitle" id="patientCount">Loading...</span>
+        </div>
+        <table id="patientsTable" style="display:none;">
+          <thead>
+            <tr><th>Name</th><th>Phone</th><th>Email</th></tr>
+          </thead>
+          <tbody id="patientsBody"></tbody>
+        </table>
+        <div class="empty-state" id="patientsEmpty" style="display:none;">
+          No patients yet. They'll show up here as bookings come in.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Patient detail / call history modal -->
+<div class="modal-overlay" id="detailOverlay" style="display:none;">
+  <div class="modal">
+    <button class="close-btn" id="detailCloseBtn">&times;</button>
+    <h2 id="detailName"></h2>
+    <p class="sub" id="detailContact"></p>
+    <h3 style="font-size:13px;font-weight:700;margin:16px 0 4px;">Call History</h3>
+    <div id="callHistoryList"></div>
+    <h3 style="font-size:13px;font-weight:700;margin:20px 0 4px;">Booking History</h3>
+    <div id="bookingHistoryList"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=20261001"></script>
+<script>
+  async function requireSession() {
+    var { data } = await supabaseClient.auth.getSession();
+    if (!data || !data.session) {
+      window.location.href = "login.html";
+      return null;
+    }
+    return data.session;
+  }
+
+  document.getElementById("logoutBtn").addEventListener("click", async function () {
+    await recordLogout();
+    await supabaseClient.auth.signOut();
+    window.location.href = "login.html";
+  });
+
+  var avatarColors = ["#3B82F6", "#22C55E", "#F59E0B", "#8B5CF6", "#EF4444"];
+  function initials(name) {
+    return name.split(" ").map(function (p) { return p[0]; }).join("").slice(0, 2).toUpperCase();
+  }
+
+  async function loadPatients() {
+    var count = document.getElementById("patientCount");
+    var table = document.getElementById("patientsTable");
+    var body = document.getElementById("patientsBody");
+    var empty = document.getElementById("patientsEmpty");
+
+    var { data, error } = await supabaseClient.from("patients").select("id, name, phone, email").order("name");
+
+    if (error) {
+      count.textContent = "Could not load patients.";
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      count.textContent = "0 total";
+      table.style.display = "none";
+      empty.style.display = "block";
+      return;
+    }
+
+    count.textContent = data.length + " total";
+    table.style.display = "table";
+    empty.style.display = "none";
+
+    body.innerHTML = data.map(function (p, i) {
+      var color = avatarColors[i % avatarColors.length];
+      return "<tr data-id='" + p.id + "' data-name='" + p.name.replace(/'/g, "&#39;") + "' data-phone='" + (p.phone || "") + "' data-email='" + (p.email || "") + "'>" +
+        '<td><div class="patient-row"><span class="avatar-sm" style="background-color:' + color + ';">' + initials(p.name) + "</span>" + p.name + "</div></td>" +
+        "<td>" + (p.phone || "—") + "</td>" +
+        "<td>" + (p.email || "—") + "</td>" +
+        "</tr>";
+    }).join("");
+  }
+
+  // ---------- Patient detail modal (real call history) ----------
+  var overlay = document.getElementById("detailOverlay");
+
+  function formatCallTime(iso) {
+    return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+  function outcomeLabel(o) {
+    return o === "booked" ? "Booked" : o === "missed" ? "Missed" : "No action";
+  }
+  function formatDuration(s) {
+    if (!s) return null;
+    var m = Math.floor(s / 60), sec = s % 60;
+    return m + "m " + sec + "s";
+  }
+
+  async function loadCallHistory(patientId) {
+    var list = document.getElementById("callHistoryList");
+    list.innerHTML = '<div class="call-history-empty">Loading...</div>';
+
+    var { data, error } = await supabaseClient
+      .from("calls")
+      .select("id, outcome, duration_seconds, created_at")
+      .eq("patient_id", patientId)
+      .order("created_at", { ascending: false });
+
+    if (error || !data || data.length === 0) {
+      list.innerHTML = '<div class="call-history-empty">No call records yet — this will populate once the AI voice agent\'s call data is connected.</div>';
+      return;
+    }
+
+    list.innerHTML = data.map(function (c) {
+      var duration = formatDuration(c.duration_seconds);
+      return '<div class="call-row">' +
+        '<div><div>' + formatCallTime(c.created_at) + '</div>' + (duration ? '<div class="meta">' + duration + '</div>' : "") + '</div>' +
+        '<span class="tag ' + c.outcome + '">' + outcomeLabel(c.outcome) + '</span>' +
+        '</div>';
+    }).join("");
+  }
+
+  function bookingStatusLabel(status) {
+    if (status === "no_show") return "No-show";
+    if (status === "rescheduled") return "Rescheduled";
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+
+  async function loadBookingHistory(patientId) {
+    var list = document.getElementById("bookingHistoryList");
+    list.innerHTML = '<div class="call-history-empty">Loading...</div>';
+
+    var { data, error } = await supabaseClient
+      .from("bookings")
+      .select("id, appointment_time, status, rescheduled_to_booking_id, doctors(name)")
+      .eq("patient_id", patientId)
+      .order("appointment_time", { ascending: false });
+
+    if (error || !data || data.length === 0) {
+      list.innerHTML = '<div class="call-history-empty">No bookings yet for this patient.</div>';
+      return;
+    }
+
+    // Look up the new appointment time for any rescheduled-away slot, so the
+    // trail reads "Sept 7 10am -> Rescheduled -> Sept 9 2pm" end to end.
+    var newBookingIds = data.map(function (b) { return b.rescheduled_to_booking_id; }).filter(Boolean);
+    var newTimesById = {};
+    if (newBookingIds.length > 0) {
+      var { data: newBookings } = await supabaseClient
+        .from("bookings")
+        .select("id, appointment_time")
+        .in("id", newBookingIds);
+      (newBookings || []).forEach(function (nb) { newTimesById[nb.id] = nb.appointment_time; });
+    }
+
+    list.innerHTML = data.map(function (b) {
+      var doctorName = b.doctors ? b.doctors.name : "Unknown doctor";
+      var when = formatCallTime(b.appointment_time);
+      var extra = "";
+      if (b.status === "rescheduled" && b.rescheduled_to_booking_id && newTimesById[b.rescheduled_to_booking_id]) {
+        extra = '<div class="meta">Moved to ' + formatCallTime(newTimesById[b.rescheduled_to_booking_id]) + '</div>';
+      }
+      return '<div class="call-row">' +
+        '<div><div>' + when + ' — ' + doctorName + '</div>' + extra + '</div>' +
+        '<span class="tag ' + b.status + '">' + bookingStatusLabel(b.status) + '</span>' +
+        '</div>';
+    }).join("");
+  }
+
+  document.getElementById("patientsBody").addEventListener("click", function (e) {
+    var row = e.target.closest("tr[data-name]");
+    if (!row) return;
+    document.getElementById("detailName").textContent = row.getAttribute("data-name");
+    var phone = row.getAttribute("data-phone");
+    var email = row.getAttribute("data-email");
+    document.getElementById("detailContact").textContent = [phone, email].filter(Boolean).join(" · ") || "No contact info";
+    overlay.style.display = "flex";
+    loadCallHistory(row.getAttribute("data-id"));
+    loadBookingHistory(row.getAttribute("data-id"));
+  });
+  document.getElementById("detailCloseBtn").addEventListener("click", function () {
+    overlay.style.display = "none";
+  });
+
+    function initials(name) {
+    var parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "NH";
+    return (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
+  }
+
+  async function loadIdentityBadge(session) {
+    document.getElementById("userEmail").textContent = session.user.email;
+
+    var { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("role, full_name")
+      .eq("id", session.user.id)
+      .maybeSingle();
+
+    var displayName = "Team";
+    var role = profile && profile.role;
+
+    if (role === "doctor") {
+      var { data: doc } = await supabaseClient
+        .from("doctors")
+        .select("name")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      displayName = (doc && doc.name) || (profile && profile.full_name) || "Doctor";
+    } else if (profile && profile.full_name) {
+      displayName = profile.full_name;
+    }
+
+    document.getElementById("userDisplayName").textContent = displayName;
+    document.getElementById("userAvatar").textContent = initials(displayName === "Team" ? "Nirva Hospital" : displayName);
+    return role;
+  }
+
+(async function init() {
+    var session = await requireSession();
+    if (!session) return;
+    var userRole = await loadIdentityBadge(session);
+    loadPatients();
+  })();
+</script>
+
+</body>
+</html>

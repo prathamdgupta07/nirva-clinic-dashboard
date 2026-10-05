@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Nirva Staff Dashboard — UI Preview</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --navy: #1E2761;
+    --ice: #CADCFC;
+    --mint: #02C39A;
+    --gold: #F2A65A;
+    --slate: #6B7A99;
+    --teal: #1C7293;
+    --bg: #F5F7FB;
+    --card: #FFFFFF;
+    --text: #1B2233;
+    --muted: #6B7A99;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .banner {
+    background: var(--gold);
+    color: #3a2a00;
+    text-align: center;
+    padding: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  header {
+    background: var(--navy);
+    color: white;
+    padding: 20px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h1 { margin: 0; font-size: 20px; }
+  header .sub { color: var(--ice); font-size: 13px; margin-top: 2px; }
+  .user-chip {
+    background: rgba(255,255,255,0.1);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+  }
+  main { padding: 28px 32px; max-width: 1200px; margin: 0 auto; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border-left: 4px solid var(--mint);
+  }
+  .stat-card.gold { border-left-color: var(--gold); }
+  .stat-card.teal { border-left-color: var(--teal); }
+  .stat-card.slate { border-left-color: var(--slate); }
+  .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .stat-value { font-size: 28px; font-weight: 700; margin-top: 6px; color: var(--navy); }
+  .stat-trend { font-size: 12px; margin-top: 4px; color: var(--mint); }
+  .stat-trend.down { color: #d9534f; }
+
+  .row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; }
+  .panel {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .panel h2 { margin: 0 0 14px 0; font-size: 15px; color: var(--navy); }
+
+  .quick-links a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--bg);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text);
+    font-size: 14px;
+    margin-bottom: 10px;
+    border: 1px solid #e6e9f2;
+  }
+  .quick-links a:hover { border-color: var(--mint); }
+  .quick-links .arrow { color: var(--mint); font-weight: bold; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; padding: 8px 10px; border-bottom: 2px solid #eef0f6; }
+  td { padding: 10px; border-bottom: 1px solid #f0f2f8; }
+  .badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge.confirmed { background: #d7f5eb; color: #027a56; }
+  .badge.pending { background: #fdf0dd; color: #a5650d; }
+
+  footer { text-align: center; padding: 20px; color: var(--muted); font-size: 12px; }
+</style>
+<link rel="stylesheet" href="clinic-theme.css">
+</head>
+<body>
+
+<div class="banner">PREVIEW MODE — placeholder data only, no login yet, nothing here is real</div>
+
+<header>
+  <div>
+    <h1>Nirva Hospital — Staff Dashboard</h1>
+    <div class="sub">Live overview for reception & doctors</div>
+  </div>
+  <div class="user-chip">Logged in as staff@nirva.test</div>
+</header>
+
+<main>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Calls Today</div>
+      <div class="stat-value">47</div>
+      <div class="stat-trend">▲ 12% vs yesterday</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-label">Avg Pickup Time</div>
+      <div class="stat-value">1.4s</div>
+      <div class="stat-trend">▼ 0.3s faster</div>
+    </div>
+    <div class="stat-card teal">
+      <div class="stat-label">Bookings Today</div>
+      <div class="stat-value">18</div>
+      <div class="stat-trend">▲ 3 more than avg</div>
+    </div>
+    <div class="stat-card slate">
+      <div class="stat-label">Missed Calls</div>
+      <div class="stat-value">2</div>
+      <div class="stat-trend down">▲ needs review</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="panel">
+      <h2>Calls This Week</h2>
+      <canvas id="callsChart" height="90"></canvas>
+    </div>
+    <div class="panel quick-links">
+      <h2>Quick Links</h2>
+      <a href="#"><span>📋 Report Doctor Leave</span><span class="arrow">→</span></a>
+      <a href="#"><span>🗓️ Doctor Schedule & Timing</span><span class="arrow">→</span></a>
+      <a href="#"><span>📞 Sarvam Call Dashboard</span><span class="arrow">→</span></a>
+      <a href="#"><span>📄 Patient Records Sheet</span><span class="arrow">→</span></a>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Today's Patients</h2>
+    <table>
+      <tr><th>Patient</th><th>Doctor</th><th>Time</th><th>Status</th></tr>
+      <tr><td>Ravi Kumar</td><td>Dr. Sharma</td><td>10:30 AM</td><td><span class="badge confirmed">Confirmed</span></td></tr>
+      <tr><td>Anita Desai</td><td>Dr. Mehta</td><td>11:00 AM</td><td><span class="badge confirmed">Confirmed</span></td></tr>
+      <tr><td>Suresh Iyer</td><td>Dr. Rao</td><td>11:45 AM</td><td><span class="badge pending">Pending</span></td></tr>
+      <tr><td>Priya Nair</td><td>Dr. Khan</td><td>1:15 PM</td><td><span class="badge confirmed">Confirmed</span></td></tr>
+      <tr><td>Manoj Verma</td><td>Dr. Sharma</td><td>2:00 PM</td><td><span class="badge pending">Pending</span></td></tr>
+    </table>
+  </div>
+</main>
+
+<footer>This is a static preview — no real data, no login system yet.</footer>
+
+<script>
+  const ctx = document.getElementById('callsChart');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets: [{
+        label: 'Calls handled',
+        data: [32, 41, 38, 47, 44, 29, 21],
+        backgroundColor: '#02C39A',
+        borderRadius: 6
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, grid: { color: '#eef0f6' } }, x: { grid: { display: false } } }
+    }
+  });
+</script>
+
+</body>
+</html>

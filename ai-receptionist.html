@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nirva — AI Receptionist</title>
+<style>
+:root {
+  --bg: #F5F7FA; --sidebar-bg: #FFFFFF; --card-bg: #FFFFFF; --border: #EAEDF2;
+  --text-dark: #1A1F2B; --text-muted: #7C8493; --active-bg: #EEF2FF; --active-text: #4F46E5;
+  --blue: #3B82F6; --blue-soft: #EAF2FE; --green: #22C55E; --green-soft: #E9FBF0;
+  --red: #EF4444; --red-soft: #FDECEC; --purple: #8B5CF6; --purple-soft: #F3EEFE;
+  --amber: #F59E0B; --amber-soft: #FEF6E7;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text-dark); }
+.app { display: flex; min-height: 100vh; }
+.sidebar { width: 240px; flex-shrink: 0; background-color: var(--sidebar-bg); border-right: 1px solid var(--border); padding: 22px 16px; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.sidebar .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 24px; }
+.sidebar .brand .logo { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--blue), var(--purple)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 14px; }
+.sidebar .brand span { font-weight: 700; font-size: 16px; }
+.sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+.sidebar nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: var(--text-muted); font-size: 14px; font-weight: 500; transition: background-color 0.15s ease, color 0.15s ease; }
+.sidebar nav a:hover { background-color: #F5F6FA; color: var(--text-dark); }
+.sidebar nav a.active { background-color: var(--active-bg); color: var(--active-text); font-weight: 600; }
+.sidebar nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
+.sidebar .bottom { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+.sidebar .bottom a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: var(--text-muted); font-size: 13px; font-weight: 500; }
+.sidebar .bottom a svg { width: 16px; height: 16px; flex-shrink: 0; }
+.main { flex: 1; min-width: 0; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; background-color: var(--card-bg); border-bottom: 1px solid var(--border); }
+.topbar .search { display: flex; align-items: center; gap: 10px; background-color: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 9px 14px; width: 320px; color: var(--text-muted); font-size: 13.5px; }
+.topbar .search svg { width: 16px; height: 16px; flex-shrink: 0; }
+.topbar .right { display: flex; align-items: center; gap: 18px; }
+.topbar .bell { width: 36px; height: 36px; border-radius: 50%; background-color: var(--bg); display: flex; align-items: center; justify-content: center; color: var(--text-muted); position: relative; }
+.topbar .bell svg { width: 17px; height: 17px; }
+.topbar .bell .dot { position: absolute; top: 8px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background-color: var(--red); border: 1.5px solid white; }
+.topbar .user { display: flex; align-items: center; gap: 10px; }
+.topbar .user .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--purple)); color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.topbar .user .info div:first-child { font-size: 13.5px; font-weight: 600; }
+.topbar .user .info div:last-child { font-size: 12px; color: var(--text-muted); }
+.content { padding: 28px 32px; max-width: 1280px; margin: 0 auto; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+.page-header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+.page-header p { margin: 0; font-size: 13.5px; color: var(--text-muted); }
+.card { background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+.card-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.card-header h2 { font-size: 15.5px; font-weight: 700; margin: 0; }
+.card-header .subtitle { font-size: 12.5px; color: var(--text-muted); }
+
+.status-row { display: flex; align-items: center; gap: 12px; }
+.status-row .avatar-lg { width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, var(--blue), var(--purple)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 20px; }
+.status-row .name { font-size: 16px; font-weight: 700; }
+.status-row .status-line { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--green); font-weight: 600; margin-top: 2px; }
+.status-row .status-line .dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag { background-color: var(--blue-soft); color: #1D4ED8; font-size: 12.5px; font-weight: 600; padding: 6px 14px; border-radius: 20px; }
+
+.capability-list { display: flex; flex-direction: column; gap: 10px; }
+.capability {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px;
+}
+.capability .left { display: flex; align-items: center; gap: 12px; }
+.capability .icon { width: 34px; height: 34px; border-radius: 8px; background-color: var(--green-soft); color: var(--green); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.capability .icon svg { width: 17px; height: 17px; }
+.capability .title { font-size: 14px; font-weight: 600; }
+.capability .desc { font-size: 12.5px; color: var(--text-muted); }
+
+.toggle { width: 40px; height: 22px; border-radius: 20px; background-color: var(--green); position: relative; flex-shrink: 0; }
+.toggle::after { content: ""; position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; background-color: white; }
+</style>
+<link rel="stylesheet" href="clinic-theme.css">
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="logo">N</div><span>Nirva</span></div>
+    <nav>
+      <a href="dashboard-light.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a href="calendar.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Calendar
+      </a>
+      <a href="calls.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg>
+        Calls
+      </a>
+      <a href="patients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Patients
+      </a>
+      <a href="ai-receptionist.html" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16h.01M16 16h.01"/></svg>
+        AI Receptionist
+      </a>
+      <a href="settings.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </a>
+    </nav>
+    <div class="bottom">
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLSetcFmlZcyT-NBSgWR_LwmePPwe_bnQsGvg9wzgOwjEXe2_KA/viewform" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></svg>
+        Report Doctor Leave
+      </a>
+      <a href="https://docs.google.com/spreadsheets/d/1JWqxyPXEYFO11vxgws1lsvKMOk2fgreKQ-Ki33sVrqk/edit#gid=709104752" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Doctor Schedule
+      </a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        Search patients, calls, appointments...
+      </div>
+      <div class="right">
+        <div class="bell">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="dot"></span>
+        </div>
+        <div class="user">
+          <div class="avatar">NH</div>
+          <div class="info"><div>Nirva Hospital</div><div>staff@nirva.test</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-header">
+        <div>
+          <h1>AI Receptionist</h1>
+          <p>Control what your AI receptionist can do — no technical setup here.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="status-row">
+          <div class="avatar-lg">AI</div>
+          <div>
+            <div class="name">Clara — Nirva Hospital's AI Receptionist</div>
+            <div class="status-line"><span class="dot"></span>Online and answering calls</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>Languages</h2></div>
+        <div class="tag-row">
+          <span class="tag">English</span>
+          <span class="tag">Hindi</span>
+          <span class="tag">Marathi</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2>What Clara Can Do</h2></div>
+        <div class="capability-list">
+          <div class="capability">
+            <div class="left">
+              <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 16 2 2 4-4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+              <div><div class="title">Book appointments</div><div class="desc">Finds an open slot and confirms with the patient</div></div>
+            </div>
+            <div class="toggle"></div>
+          </div>
+          <div class="capability">
+            <div class="left">
+              <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></div>
+              <div><div class="title">Reschedule appointments</div><div class="desc">Moves an existing booking to a new time</div></div>
+            </div>
+            <div class="toggle"></div>
+          </div>
+          <div class="capability">
+            <div class="left">
+              <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></svg></div>
+              <div><div class="title">Cancel appointments</div><div class="desc">Cancels a booking when a patient asks</div></div>
+            </div>
+            <div class="toggle"></div>
+          </div>
+          <div class="capability">
+            <div class="left">
+              <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+              <div><div class="title">Answer business timings</div><div class="desc">Tells callers when the clinic is open</div></div>
+            </div>
+            <div class="toggle"></div>
+          </div>
+          <div class="capability">
+            <div class="left">
+              <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg></div>
+              <div><div class="title">Transfer urgent calls</div><div class="desc">Escalates to a human when a call needs one</div></div>
+            </div>
+            <div class="toggle"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

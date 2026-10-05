@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nirva — Staff Login (Option B: Split Screen)</title>
+<style>
+:root {
+  --bg: #F5F7FA;
+  --card-bg: #FFFFFF;
+  --border: #EAEDF2;
+  --text-dark: #1A1F2B;
+  --text-muted: #7C8493;
+  --blue: #3B82F6;
+  --blue-soft: #EAF2FE;
+  --purple: #8B5CF6;
+  --green: #22C55E;
+  --green-soft: #EAFBF1;
+  --red: #EF4444;
+  --red-soft: #FDECEC;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text-dark);
+  background-color: var(--bg);
+}
+
+.split { display: flex; min-height: 100vh; }
+
+/* ---------- Left branding panel ---------- */
+.panel {
+  flex: 1;
+  min-width: 0;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 44px 48px;
+}
+
+.panel .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel .brand .logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background-color: rgba(255,255,255,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.panel .brand span { font-weight: 700; font-size: 17px; }
+
+.panel .pitch { max-width: 380px; }
+
+.panel .pitch h2 {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 0 0 14px;
+}
+
+.panel .pitch p {
+  font-size: 14.5px;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.panel .stats {
+  display: flex;
+  gap: 28px;
+}
+
+.panel .stats .stat .value { font-size: 22px; font-weight: 700; }
+.panel .stats .stat .label { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+
+.panel .footnote {
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+}
+
+/* ---------- Right form panel ---------- */
+.form-panel {
+  flex: 1;
+  min-width: 0;
+  background-color: var(--card-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.form-inner { width: 100%; max-width: 360px; }
+
+.form-inner h1 { font-size: 20px; font-weight: 700; margin: 0 0 4px; }
+.form-inner .subtitle { font-size: 13.5px; color: var(--text-muted); margin: 0 0 26px; }
+
+/* ---------- Error banner (styled placeholder, not wired up) ---------- */
+.error-banner {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--red-soft);
+  color: #B91C1C;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 18px;
+}
+
+.error-banner.show { display: flex; }
+.error-banner svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+.banner-success {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--green-soft, #EAFBF1);
+  color: #15803D;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 18px;
+}
+.banner-success.show { display: flex; }
+.banner-success svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+#forgotPanel { display: none; }
+
+.back-to-login {
+  display: block;
+  text-align: center;
+  font-size: 13px;
+  color: var(--blue);
+  text-decoration: none;
+  font-weight: 600;
+  margin-top: 16px;
+}
+.back-to-login:hover { text-decoration: underline; }
+
+/* ---------- Form ---------- */
+.field { margin-bottom: 16px; }
+
+.field label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.field input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-dark);
+  background-color: var(--bg);
+  outline: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.field input::placeholder { color: #A6ADBB; }
+
+.field input:focus {
+  border-color: var(--blue);
+  background-color: var(--card-bg);
+}
+
+.field.error input {
+  border-color: var(--red);
+  background-color: var(--red-soft);
+}
+
+.row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.remember {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.remember input { accent-color: var(--blue); }
+
+.forgot {
+  font-size: 13px;
+  color: var(--blue);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.forgot:hover { text-decoration: underline; }
+
+/* ---------- Button ---------- */
+.btn-login {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background-color: var(--blue);
+  color: white;
+  font-size: 14.5px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.btn-login:hover { background-color: #2f6fe0; }
+
+.btn-login.loading {
+  opacity: 0.75;
+  cursor: default;
+  pointer-events: none;
+}
+
+.spinner {
+  display: none;
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.btn-login.loading .spinner { display: inline-block; }
+.btn-login.loading .btn-label { display: none; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.footnote-form {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 22px;
+}
+
+@media (max-width: 860px) {
+  .split { flex-direction: column; }
+  .panel { padding: 32px 28px; }
+  .panel .pitch h2 { font-size: 21px; }
+}
+</style>
+<link rel="stylesheet" href="clinic-theme.css">
+</head>
+<body>
+
+<div class="split">
+
+  <div class="panel">
+    <div class="brand">
+      <div class="logo">N</div>
+      <span>Nirva AI</span>
+    </div>
+
+    <div class="pitch">
+      <h2>Never miss another call.</h2>
+      <p>Your AI receptionist handles calls, books appointments, and keeps your schedule up to date — this dashboard is where your team stays on top of it all.</p>
+    </div>
+
+    <div>
+      <div class="stats" style="margin-bottom: 14px;">
+        <div class="stat">
+          <div class="value">24/7</div>
+          <div class="label">AI receptionist coverage</div>
+        </div>
+        <div class="stat">
+          <div class="value">Auto</div>
+          <div class="label">AI-handled call triage</div>
+        </div>
+      </div>
+      <div class="footnote">© Nirva AI · Staff Dashboard</div>
+    </div>
+  </div>
+
+  <div class="form-panel">
+    <div class="form-inner">
+
+      <div id="loginPanel">
+        <h1>Log in to your account</h1>
+        <p class="subtitle">Enter your staff credentials to continue</p>
+
+        <div class="error-banner" id="errorBanner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+          Invalid email or password. Please try again.
+        </div>
+
+        <form id="loginForm">
+          <div class="field" id="emailField">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="you@nirvahospital.com" autocomplete="off">
+          </div>
+          <div class="field" id="passwordField">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="••••••••" autocomplete="off">
+          </div>
+
+          <div class="row-between">
+            <label class="remember">
+              <input type="checkbox">
+              Remember me
+            </label>
+            <a href="#" class="forgot" id="forgotLink">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="btn-login" id="loginBtn">
+            <span class="btn-label">Log in</span>
+            <span class="spinner"></span>
+          </button>
+        </form>
+
+        <p class="footnote-form">Staff access only · Contact your admin for an account</p>
+      </div>
+
+      <div id="forgotPanel">
+        <h1>Reset your password</h1>
+        <p class="subtitle">Enter your email and we'll send you a reset link</p>
+
+        <div class="error-banner" id="forgotErrorBanner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+          <span id="forgotErrorText">Something went wrong.</span>
+        </div>
+
+        <div class="banner-success" id="forgotSuccessBanner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+          <span>If an account exists for that email, a reset link has been sent. Check your inbox.</span>
+        </div>
+
+        <form id="forgotForm">
+          <div class="field" id="forgotEmailField">
+            <label for="forgotEmail">Email</label>
+            <input type="email" id="forgotEmail" placeholder="you@nirvahospital.com" autocomplete="off">
+          </div>
+
+          <button type="submit" class="btn-login" id="forgotBtn">
+            <span class="btn-label">Send reset link</span>
+            <span class="spinner"></span>
+          </button>
+        </form>
+
+        <a href="#" class="back-to-login" id="backToLoginLink">Back to login</a>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=20261001"></script>
+<script>
+  // ---------- Session guard ----------
+  // If the user already has a valid session, skip the login form entirely.
+  (async function checkExistingSession() {
+    var { data } = await supabaseClient.auth.getSession();
+    if (data && data.session) {
+      // Still record this as a login: an already-valid session in a brand
+      // new tab is a real "logging in" event for that tab, and skipping it
+      // here was why Login History wasn't updating on repeat visits.
+      await recordLogin(data.session.user.id);
+      window.location.href = "dashboard-light.html";
+    }
+  })();
+
+  // ---------- Form elements ----------
+  var form = document.getElementById("loginForm");
+  var loginBtn = document.getElementById("loginBtn");
+  var errorBanner = document.getElementById("errorBanner");
+  var emailInput = document.getElementById("email");
+  var passwordInput = document.getElementById("password");
+
+  function showError(message) {
+    if (message) {
+      errorBanner.lastChild.textContent = " " + message;
+    }
+    errorBanner.classList.add("show");
+    document.getElementById("emailField").classList.add("error");
+    document.getElementById("passwordField").classList.add("error");
+  }
+
+  function clearError() {
+    errorBanner.classList.remove("show");
+    document.getElementById("emailField").classList.remove("error");
+    document.getElementById("passwordField").classList.remove("error");
+  }
+
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    clearError();
+    loginBtn.classList.add("loading");
+
+    var email = emailInput.value.trim();
+    var password = passwordInput.value;
+
+    var { data, error } = await supabaseClient.auth.signInWithPassword({ email: email, password: password });
+
+    loginBtn.classList.remove("loading");
+
+    if (error) {
+      showError("Invalid email or password. Please try again.");
+      return;
+    }
+
+    // Record this login for the Login History view in Settings.
+    if (data && data.user) {
+      await recordLogin(data.user.id);
+    }
+
+    window.location.href = "dashboard-light.html";
+  });
+
+  // ---------- Forgot password panel ----------
+  var loginPanel = document.getElementById("loginPanel");
+  var forgotPanel = document.getElementById("forgotPanel");
+  var forgotLink = document.getElementById("forgotLink");
+  var backToLoginLink = document.getElementById("backToLoginLink");
+  var forgotForm = document.getElementById("forgotForm");
+  var forgotBtn = document.getElementById("forgotBtn");
+  var forgotEmailInput = document.getElementById("forgotEmail");
+  var forgotErrorBanner = document.getElementById("forgotErrorBanner");
+  var forgotErrorText = document.getElementById("forgotErrorText");
+  var forgotSuccessBanner = document.getElementById("forgotSuccessBanner");
+
+  function showForgotError(message) {
+    forgotErrorText.textContent = message;
+    forgotErrorBanner.classList.add("show");
+    document.getElementById("forgotEmailField").classList.add("error");
+  }
+
+  function clearForgotState() {
+    forgotErrorBanner.classList.remove("show");
+    forgotSuccessBanner.classList.remove("show");
+    document.getElementById("forgotEmailField").classList.remove("error");
+  }
+
+  forgotLink.addEventListener("click", function (event) {
+    event.preventDefault();
+    clearForgotState();
+    forgotForm.style.display = "block";
+    forgotEmailInput.value = "";
+    loginPanel.style.display = "none";
+    forgotPanel.style.display = "block";
+  });
+
+  backToLoginLink.addEventListener("click", function (event) {
+    event.preventDefault();
+    clearForgotState();
+    forgotPanel.style.display = "none";
+    loginPanel.style.display = "block";
+  });
+
+  forgotForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    clearForgotState();
+    forgotBtn.classList.add("loading");
+
+    var email = forgotEmailInput.value.trim();
+
+    var { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + "/reset-password.html"
+    });
+
+    forgotBtn.classList.remove("loading");
+
+    if (error) {
+      showForgotError(error.message || "Could not send reset link. Please try again.");
+      return;
+    }
+
+    forgotForm.style.display = "none";
+    forgotSuccessBanner.classList.add("show");
+  });
+</script>
+
+</body>
+</html>
