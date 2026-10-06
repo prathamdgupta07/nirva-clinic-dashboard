@@ -748,7 +748,7 @@ body {
 
   async function loadPersistentActivity() {
     var result = await supabaseClient.from("activity_audit")
-      .select("action, actor_user_id, created_at")
+      .select("action, actor_user_id, actor_name, created_at")
       .order("created_at", { ascending: false }).limit(8);
     if (result.error || !result.data) return;
     var ids = result.data.map(function (row) { return row.actor_user_id; }).filter(Boolean);
@@ -758,7 +758,7 @@ body {
       if (!profiles.error) (profiles.data || []).forEach(function (profile) { names[profile.id] = profile.full_name; });
     }
     activityEntries = result.data.map(function (row) {
-      var actor = names[row.actor_user_id] || (row.actor_user_id ? "Staff member" : "System");
+      var actor = row.actor_name || names[row.actor_user_id] || (row.actor_user_id ? "Staff member" : "System");
       return { message: activityMessage(row.action, actor), tone: row.action === "booking_no_show" ? "warning" : "info", time: new Date(row.created_at) };
     });
     renderActivity();
