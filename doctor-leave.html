@@ -67,6 +67,11 @@ tbody tr:last-child td { border-bottom: none; }
 .form-note { font-size: 12px; color: var(--text-muted); margin-top: 10px; }
 .form-error { font-size: 12.5px; color: #B91C1C; margin-top: 10px; display: none; }
 .form-error.show { display: block; }
+.leave-edit-overlay { position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(20,33,50,.45); }
+.leave-edit-dialog { width:min(460px,100%); background:var(--card-bg); border-radius:14px; padding:22px; box-shadow:0 18px 50px rgba(18,42,66,.22); }
+.leave-edit-dialog h2 { margin:0 0 6px; font-size:18px; }.leave-edit-dialog p { margin:0 0 16px; font-size:13px; color:var(--text-muted); }
+.leave-edit-dialog .form-field { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }.leave-edit-dialog label { font-size:12.5px; font-weight:600; color:var(--text-muted); }
+.leave-edit-dialog input { border:1px solid var(--border); border-radius:8px; padding:10px 12px; font:inherit; }.leave-edit-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
 .form-success { font-size: 12.5px; color: #15803D; margin-top: 10px; display: none; }
 .form-success.show { display: block; }
 </style>
@@ -173,7 +178,7 @@ tbody tr:last-child td { border-bottom: none; }
 
         <table style="margin-top:16px;">
           <thead>
-            <tr><th>Doctor</th><th>Dates</th><th>Reason</th><th>Added By</th><th>Status</th></tr>
+            <tr><th>Doctor</th><th>Dates</th><th>Reason</th><th>Recorded by</th><th>Status</th><th></th></tr>
           </thead>
           <tbody id="leaveBody"></tbody>
         </table>
@@ -182,6 +187,20 @@ tbody tr:last-child td { border-bottom: none; }
 
     </div>
   </div>
+</div>
+
+<div class="leave-edit-overlay" id="leaveEditOverlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="leaveEditTitle">
+  <form class="leave-edit-dialog" id="leaveEditForm">
+    <h2 id="leaveEditTitle">Edit Doctor Leave</h2>
+    <p>Confirm your current password to change this leave record. The editor and timestamp are saved in Activity History.</p>
+    <input type="hidden" id="editLeaveId">
+    <div class="form-field"><label for="editLeaveStart">Leave Start Date</label><input id="editLeaveStart" type="date" required></div>
+    <div class="form-field"><label for="editLeaveEnd">Leave End Date</label><input id="editLeaveEnd" type="date" required></div>
+    <div class="form-field"><label for="editLeaveReason">Reason (optional)</label><input id="editLeaveReason" type="text" maxlength="500"></div>
+    <div class="form-field"><label for="editLeavePassword">Current password</label><input id="editLeavePassword" type="password" autocomplete="current-password" required></div>
+    <div class="form-error" id="leaveEditError"></div>
+    <div class="leave-edit-actions"><button type="button" class="btn-small" id="leaveEditCancel">Cancel</button><button type="submit" class="btn-submit" id="leaveEditSubmit">Save Changes</button></div>
+  </form>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -216,6 +235,7 @@ tbody tr:last-child td { border-bottom: none; }
   var leaveSuccess = document.getElementById("leaveSuccess");
   var leaveSubmitBtn = document.getElementById("leaveSubmitBtn");
   var currentSession = null;
+  var leaveRowsById = {};
 
   function showLeaveError(message) {
     leaveSuccess.classList.remove("show");
@@ -241,7 +261,7 @@ tbody tr:last-child td { border-bottom: none; }
 
     var { data, error } = await supabaseClient
       .from("doctor_leave")
-      .select("id, leave_start_date, leave_end_date, reason, doctors(name), profiles(full_name)")
+      .select("id, doctor_id, leave_start_date, leave_end_date, reason, created_by, created_at, updated_by, updated_at, doctors(name)")
       .order("leave_start_date", { ascending: false })
       .limit(30);
 
@@ -252,17 +272,60 @@ tbody tr:last-child td { border-bottom: none; }
     }
 
     empty.style.display = "none";
+    leaveRowsById = {};
+    data.forEach(function (row) { leaveRowsById[row.id] = row; });
+    var actorIds = data.map(function (row) { return [row.created_by, row.updated_by]; }).flat().filter(Boolean);
+    var actorNames = {};
+    if (actorIds.length) {
+      var profileResult = await supabaseClient.from("profiles").select("id, full_name").in("id", actorIds);
+      if (!profileResult.error) (profileResult.data || []).forEach(function (profile) { actorNames[profile.id] = profile.full_name; });
+    }
     var todayStr = new Date().toISOString().slice(0, 10);
     body.innerHTML = data.map(function (row) {
       var doctorName = (row.doctors && row.doctors.name) || "Unknown doctor";
-      var addedBy = (row.profiles && row.profiles.full_name) || "—";
+      var addedBy = actorNames[row.created_by] || "System";
+      var recorded = "Added by " + addedBy + "<br><span style=\"font-size:12px;color:var(--text-muted)\">" + formatDateTime(row.created_at) + "</span>";
+      if (row.updated_at) recorded += "<br><span style=\"font-size:12px;color:var(--text-muted)\">Edited by " + (actorNames[row.updated_by] || "Staff") + " · " + formatDateTime(row.updated_at) + "</span>";
       var isPast = row.leave_end_date < todayStr;
       var status = isPast
         ? '<span class="pill past">Past</span>'
         : '<span class="pill upcoming">Upcoming</span>';
-      return "<tr><td>" + doctorName + "</td><td>" + formatDate(row.leave_start_date) + " – " + formatDate(row.leave_end_date) + "</td><td>" + (row.reason || "—") + "</td><td>" + addedBy + "</td><td>" + status + "</td></tr>";
+      return "<tr><td>" + escapeHtml(doctorName) + "</td><td>" + formatDate(row.leave_start_date) + " – " + formatDate(row.leave_end_date) + "</td><td>" + escapeHtml(row.reason || "—") + "</td><td>" + recorded + "</td><td>" + status + "</td><td><button class=\"btn-small\" data-edit-leave=\"" + row.id + "\">Edit</button></td></tr>";
     }).join("");
   }
+
+  function formatDateTime(value) {
+    return value ? new Date(value).toLocaleString("en-US", { month:"short", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit" }) : "—";
+  }
+  function escapeHtml(value) { return String(value == null ? "" : value).replace(/[&<>\"']/g, function (c) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+
+  var leaveEditOverlay = document.getElementById("leaveEditOverlay");
+  function closeLeaveEditor() { leaveEditOverlay.style.display = "none"; document.getElementById("leaveEditPassword").value = ""; }
+  document.getElementById("leaveEditCancel").addEventListener("click", closeLeaveEditor);
+  document.getElementById("leaveBody").addEventListener("click", function (event) {
+    var button = event.target.closest("button[data-edit-leave]"); if (!button) return;
+    var row = leaveRowsById[button.getAttribute("data-edit-leave")]; if (!row) return;
+    document.getElementById("editLeaveId").value = row.id;
+    document.getElementById("editLeaveStart").value = row.leave_start_date;
+    document.getElementById("editLeaveEnd").value = row.leave_end_date;
+    document.getElementById("editLeaveReason").value = row.reason || "";
+    document.getElementById("leaveEditError").classList.remove("show");
+    leaveEditOverlay.style.display = "flex";
+  });
+  document.getElementById("leaveEditForm").addEventListener("submit", async function (event) {
+    event.preventDefault();
+    var start = document.getElementById("editLeaveStart").value, end = document.getElementById("editLeaveEnd").value;
+    var error = document.getElementById("leaveEditError"), submit = document.getElementById("leaveEditSubmit");
+    error.classList.remove("show");
+    if (!start || !end || start > end) { error.textContent = "Enter a valid start and end date."; error.classList.add("show"); return; }
+    submit.disabled = true;
+    var result = await supabaseClient.functions.invoke("update-doctor-leave", { body: { leave_id: document.getElementById("editLeaveId").value, leave_start_date: start, leave_end_date: end, reason: document.getElementById("editLeaveReason").value.trim(), password: document.getElementById("editLeavePassword").value } });
+    submit.disabled = false;
+    if (result.error || !result.data || result.data.success !== true) {
+      error.textContent = result.data && result.data.error_code === "invalid_password" ? "The password is incorrect." : "This leave could not be updated. Please try again."; error.classList.add("show"); return;
+    }
+    closeLeaveEditor(); leaveSuccess.textContent = "Leave updated and recorded in Activity History."; leaveSuccess.classList.add("show"); loadLeave();
+  });
 
 
   leaveForm.addEventListener("submit", async function (event) {

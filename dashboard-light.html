@@ -725,11 +725,43 @@ body {
   function addActivity(message, tone) {
     activityEntries.unshift({ message: message, tone: tone || "info", time: new Date() });
     activityEntries = activityEntries.slice(0, 6);
+    renderActivity();
+  }
+
+  function renderActivity() {
     var list = document.getElementById("activityList");
     if (!list) return;
     list.innerHTML = activityEntries.map(function (entry) {
       return '<div class="activity-item"><span class="activity-dot ' + escapeHtml(entry.tone) + '"></span><span>' + escapeHtml(entry.message) + ' · ' + escapeHtml(entry.time.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })) + '</span></div>';
     }).join("");
+  }
+
+  function activityMessage(action, actor) {
+    var labels = {
+      booking_created: "created a booking", booking_arrived: "marked an appointment as arrived", booking_completed: "marked an appointment as completed", booking_cancelled: "cancelled an appointment", booking_no_show: "marked an appointment as no-show", booking_rescheduled: "rescheduled an appointment",
+      callback_created: "created a callback request", callback_contacted: "marked a callback as contacted",
+      doctor_leave_created: "recorded doctor leave", doctor_leave_updated: "updated doctor leave",
+      doctor_schedule_created: "recorded a doctor schedule change"
+    };
+    return actor + " " + (labels[action] || "recorded an operational update") + ".";
+  }
+
+  async function loadPersistentActivity() {
+    var result = await supabaseClient.from("activity_audit")
+      .select("action, actor_user_id, created_at")
+      .order("created_at", { ascending: false }).limit(8);
+    if (result.error || !result.data) return;
+    var ids = result.data.map(function (row) { return row.actor_user_id; }).filter(Boolean);
+    var names = {};
+    if (ids.length) {
+      var profiles = await supabaseClient.from("profiles").select("id, full_name").in("id", ids);
+      if (!profiles.error) (profiles.data || []).forEach(function (profile) { names[profile.id] = profile.full_name; });
+    }
+    activityEntries = result.data.map(function (row) {
+      var actor = names[row.actor_user_id] || (row.actor_user_id ? "Staff member" : "System");
+      return { message: activityMessage(row.action, actor), tone: row.action === "booking_no_show" ? "warning" : "info", time: new Date(row.created_at) };
+    });
+    renderActivity();
   }
 
   function renderAttention() {
@@ -1294,6 +1326,7 @@ body {
     loadBoard();
     loadCallbackList();
     loadOperationalUpdates();
+    loadPersistentActivity();
     subscribeToNewBookings();
     subscribeToMissedCalls();
   })();
