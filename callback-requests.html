@@ -161,7 +161,7 @@ tbody tr:last-child td { border-bottom: none; }
         </div>
         <table id="requestsTable" style="display:none;">
           <thead>
-            <tr><th>Caller</th><th>Doctor</th><th>Phone</th><th>Reason</th><th>Requested</th><th>Status</th><th></th></tr>
+            <tr><th>Caller</th><th>Doctor</th><th>Phone</th><th>Reason</th><th>Requested</th><th>Status</th><th>Contacted by</th><th></th></tr>
           </thead>
           <tbody id="requestsBody"></tbody>
         </table>
@@ -193,6 +193,12 @@ tbody tr:last-child td { border-bottom: none; }
 
   function formatRequestedTime(iso) {
     return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value).replace(/[&<>\"']/g, function (char) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
+    });
   }
 
   var currentSession = null;
@@ -249,7 +255,7 @@ tbody tr:last-child td { border-bottom: none; }
 
     var { data, error } = await supabaseClient
       .from("callback_requests")
-      .select("id, caller_name, phone_number, reason, status, created_at, doctors(name)")
+      .select("id, caller_name, phone_number, reason, status, created_at, contacted_at, contacted_by, doctors(name)")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -264,6 +270,15 @@ tbody tr:last-child td { border-bottom: none; }
       return;
     }
 
+    var contactedIds = data.map(function (row) { return row.contacted_by; }).filter(Boolean);
+    var staffNames = {};
+    if (contactedIds.length) {
+      var profileResult = await supabaseClient.from("profiles").select("id, full_name").in("id", contactedIds);
+      if (!profileResult.error) {
+        (profileResult.data || []).forEach(function (profile) { staffNames[profile.id] = profile.full_name; });
+      }
+    }
+
     count.textContent = data.length + " total";
     table.style.display = "table";
     empty.style.display = "none";
@@ -276,8 +291,11 @@ tbody tr:last-child td { border-bottom: none; }
       var actionCell = r.status === "pending"
         ? '<button class="btn-small" data-id="' + r.id + '">Mark Contacted</button>'
         : "";
+      var contactedBy = r.status === "contacted"
+        ? escapeHtml(staffNames[r.contacted_by] || "Staff") + (r.contacted_at ? '<br><span style="font-size:12px;color:var(--text-muted)">' + escapeHtml(formatRequestedTime(r.contacted_at)) + '</span>' : "")
+        : "—";
       var reasonText = r.reason || "Patient requested a callback";
-      return "<tr><td>" + r.caller_name + "</td><td>" + doctorName + "</td><td>" + r.phone_number + "</td><td>" + reasonText + "</td><td>" + formatRequestedTime(r.created_at) + "</td><td>" + statusPill + "</td><td>" + actionCell + "</td></tr>";
+      return "<tr><td>" + escapeHtml(r.caller_name) + "</td><td>" + escapeHtml(doctorName) + "</td><td>" + escapeHtml(r.phone_number) + "</td><td>" + escapeHtml(reasonText) + "</td><td>" + escapeHtml(formatRequestedTime(r.created_at)) + "</td><td>" + statusPill + "</td><td>" + contactedBy + "</td><td>" + actionCell + "</td></tr>";
     }).join("");
   }
 

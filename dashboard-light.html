@@ -738,12 +738,16 @@ body {
     var callbacks = currentCallbacks.length;
     var changes = currentBookings.filter(function (b) { return b.status === "no_show" || b.status === "cancelled"; }).length;
     var remaining = currentBookings.filter(function (b) { return b.status === "confirmed" || b.status === "arrived"; }).length;
-    var leaveToday = currentLeaves.length;
+    var today = localDateString();
+    var leaveToday = currentLeaves.filter(function (leave) {
+      return leave.leave_start_date <= today && leave.leave_end_date >= today;
+    }).length;
+    var upcomingLeaveCount = currentLeaves.length;
     var scheduleChanges = pendingScheduleChanges.length;
     target.innerHTML =
       '<a class="attention-card ' + (callbacks ? "warning" : "success") + '" href="callback-requests.html" style="color:inherit;text-decoration:none"><div class="eyebrow">Callbacks</div><div class="metric">' + callbacks + '</div><div class="detail">' + (callbacks ? "Open the callback queue." : "No follow-up calls waiting.") + '</div></a>' +
       '<a class="attention-card ' + (changes ? "warning" : "info") + '" href="#sideCardWrap" style="color:inherit;text-decoration:none"><div class="eyebrow">Schedule changes</div><div class="metric">' + changes + '</div><div class="detail">' + (changes ? "Review cancelled or no-show appointments." : "No cancelled or no-show appointments.") + '</div></a>' +
-      '<a class="attention-card ' + (leaveToday ? "warning" : "success") + '" href="doctor-leave.html" style="color:inherit;text-decoration:none"><div class="eyebrow">Doctors on leave</div><div class="metric">' + leaveToday + '</div><div class="detail">' + (leaveToday ? "Review cover before accepting bookings." : "No doctor is on leave today.") + '</div></a>' +
+      '<a class="attention-card ' + (upcomingLeaveCount ? "warning" : "success") + '" href="doctor-leave.html" style="color:inherit;text-decoration:none"><div class="eyebrow">Doctor leave</div><div class="metric">' + upcomingLeaveCount + '</div><div class="detail">' + (leaveToday ? leaveToday + " on leave today. Review cover before accepting bookings." : upcomingLeaveCount ? "Upcoming leave is scheduled. Review cover before accepting bookings." : "No doctor leave is scheduled.") + '</div></a>' +
       '<a class="attention-card ' + (scheduleChanges ? "warning" : "info") + '" href="doctor-schedule.html" style="color:inherit;text-decoration:none"><div class="eyebrow">Upcoming schedule changes</div><div class="metric">' + scheduleChanges + '</div><div class="detail">' + (scheduleChanges ? "Review planned doctor-hours changes." : "No doctor-hours changes waiting.") + '</div></a>' +
       '<a class="attention-card info" href="#scheduleHeading" style="color:inherit;text-decoration:none"><div class="eyebrow">Still to see</div><div class="metric">' + remaining + '</div><div class="detail">Confirmed and arrived appointments remaining.</div></a>';
   }
@@ -760,7 +764,10 @@ body {
     target.innerHTML = doctors.map(function (doctor) {
       var days = String(doctor.working_days || "").split(",").map(function (day) { return Number(day.trim()); });
       var working = !days.filter(function (day) { return !isNaN(day); }).length || days.indexOf(today) !== -1;
-      var onLeave = currentLeaves.some(function (leave) { return leave.doctor_id === doctor.id; });
+      var todayString = localDateString();
+      var onLeave = currentLeaves.some(function (leave) {
+        return leave.doctor_id === doctor.id && leave.leave_start_date <= todayString && leave.leave_end_date >= todayString;
+      });
       var booked = currentBookings.filter(function (booking) { return booking.doctor_id === doctor.id && booking.status !== "cancelled" && booking.status !== "no_show"; }).length;
       var hours = doctor.start_time && doctor.end_time ? String(doctor.start_time).slice(0, 5) + "–" + String(doctor.end_time).slice(0, 5) : "Hours not set";
       var slots = doctor.start_time && doctor.end_time ? Math.max(0, Math.floor((minutesFromTime(doctor.end_time) - minutesFromTime(doctor.start_time)) / 15) - booked) : null;
@@ -777,7 +784,7 @@ body {
   async function loadOperationalUpdates() {
     var today = localDateString();
     var results = await Promise.all([
-      supabaseClient.from("doctor_leave").select("doctor_id, leave_start_date, leave_end_date").lte("leave_start_date", today).gte("leave_end_date", today),
+      supabaseClient.from("doctor_leave").select("doctor_id, leave_start_date, leave_end_date").gte("leave_end_date", today).order("leave_start_date", { ascending: true }).limit(30),
       supabaseClient.from("doctor_schedule_changes").select("id, doctor_id, effective_from").eq("applied", false).gte("effective_from", new Date().toISOString()).limit(20)
     ]);
     currentLeaves = results[0].error ? [] : (results[0].data || []);
