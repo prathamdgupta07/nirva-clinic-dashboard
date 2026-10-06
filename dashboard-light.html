@@ -155,7 +155,7 @@ body {
 .section-header { display: flex; align-items: baseline; justify-content: space-between; margin: 4px 0 12px; }
 .section-header h2 { margin: 0; font-size: 15.5px; }
 .section-header span { color: var(--text-muted); font-size: 12.5px; }
-.attention-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+.attention-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
 .attention-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 15px; }
 .attention-card .eyebrow { color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .35px; }
 .attention-card .metric { font-size: 25px; font-weight: 700; margin: 5px 0 3px; }
@@ -172,6 +172,8 @@ body {
 .activity-item { display: flex; align-items: flex-start; gap: 9px; color: var(--text-muted); font-size: 12.5px; line-height: 1.35; }
 .activity-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--blue); margin-top: 4px; flex: 0 0 auto; }
 .activity-dot.success { background: var(--green); }.activity-dot.warning { background: var(--amber); }
+.notification-panel { position: absolute; right: 0; top: 44px; width: min(340px, calc(100vw - 32px)); background: white; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 18px 38px rgba(24,50,75,.16); padding: 14px; z-index: 30; display: none; }
+.notification-panel.show { display: block; }.notification-panel h3 { margin: 0 0 8px; font-size: 13px; }.notification-panel p { margin: 0; color: var(--text-muted); font-size: 12.5px; line-height: 1.4; }
 
 /* ---------- Board ---------- */
 .board-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
@@ -181,6 +183,7 @@ body {
 .board-header select { border: 1px solid var(--border); border-radius: 8px; background: white; color: var(--text-dark); font: inherit; font-size: 12.5px; padding: 7px 10px; max-width: 200px; }
 
 .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+.mobile-schedule { display: none; }
 
 .column {
   background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 14px;
@@ -303,6 +306,8 @@ body {
   .app { display: block; }
   .sidebar { width: 100%; height: auto; min-height: 0; position: static; padding: 12px; border-right: 0; border-bottom: 1px solid var(--border); }
   .sidebar .brand { padding: 0 6px 10px; }
+  .mobile-menu-btn { display: inline-flex !important; margin-left: auto; }
+  .sidebar.collapsed nav, .sidebar.collapsed .bottom { display: none; }
   .sidebar nav, .sidebar .bottom { flex-direction: row; gap: 4px; overflow-x: auto; padding: 0; border: 0; margin: 0; }
   .sidebar nav a, .sidebar .bottom a { white-space: nowrap; padding: 8px 10px; }
   .topbar { padding: 12px 16px; }
@@ -313,6 +318,7 @@ body {
   .stats-grid, .coverage-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .board-header .controls { width: 100%; }.board-header select { flex: 1; max-width: none; }
   .stat-card { padding: 14px; }.card-actions button { min-height: 40px; }
+  .board { display: none; }.mobile-schedule { display: block; }.mobile-schedule .booking-card { margin-bottom: 10px; }
 }
 </style>
 <link rel="stylesheet" href="clinic-theme.css">
@@ -326,6 +332,7 @@ body {
     <div class="brand">
       <div class="logo">N</div>
       <span>Nirva</span>
+      <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-expanded="true" style="display:none;border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:7px 10px;font:inherit;font-size:12px;font-weight:600;">Menu</button>
     </div>
     <nav>
       <a href="dashboard-light.html" class="active">
@@ -374,10 +381,11 @@ body {
         <input id="bookingSearch" type="search" autocomplete="off" placeholder="Search patient, doctor, phone, or source…" aria-label="Search today's appointments">
       </div>
       <div class="right">
-        <div class="bell">
+        <button class="bell" id="callbackBell" type="button" aria-label="Open callback notifications" aria-expanded="false" style="border:0;cursor:pointer;font-family:inherit;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <span class="dot"></span>
-        </div>
+          <div class="notification-panel" id="notificationPanel"><h3>Callback notifications</h3><p id="notificationText">No callback requests waiting.</p></div>
+        </button>
         <div class="user">
           <div class="avatar" id="userAvatar">NH</div>
           <div class="info">
@@ -461,6 +469,8 @@ body {
         <div class="controls">
           <label for="doctorFilter" style="font-size:12.5px;color:var(--text-muted);">Doctor</label>
           <select id="doctorFilter" aria-label="Filter today's schedule by doctor"><option value="">All doctors</option></select>
+          <select id="statusFilter" aria-label="Filter today's schedule by status"><option value="">All statuses</option><option value="confirmed">Confirmed</option><option value="arrived">Arrived</option><option value="completed">Completed</option><option value="no_show">No-show</option><option value="cancelled">Cancelled</option></select>
+          <select id="sourceFilter" aria-label="Filter today's schedule by source"><option value="">AI and staff</option><option value="ai_agent">AI bookings</option><option value="staff">Staff bookings</option></select>
         </div>
       </div>
 
@@ -478,6 +488,7 @@ body {
           <div id="colCompleted"></div>
         </div>
       </div>
+      <div class="mobile-schedule" id="mobileScheduleList" aria-label="Today's appointments"></div>
 
       <!-- No-show / Cancelled side rail -->
       <div class="side-card" id="sideCardWrap" style="display:none;">
@@ -700,8 +711,12 @@ body {
   // ---------- Load + render board ----------
   var currentBookings = [];
   var currentCallbacks = [];
+  var currentLeaves = [];
+  var pendingScheduleChanges = [];
   var bookingSearchQuery = "";
   var doctorFilterId = "";
+  var statusFilter = "";
+  var sourceFilter = "";
   var activityEntries = [];
   var hasInitialActivity = false;
 
@@ -723,9 +738,13 @@ body {
     var callbacks = currentCallbacks.length;
     var changes = currentBookings.filter(function (b) { return b.status === "no_show" || b.status === "cancelled"; }).length;
     var remaining = currentBookings.filter(function (b) { return b.status === "confirmed" || b.status === "arrived"; }).length;
+    var leaveToday = currentLeaves.length;
+    var scheduleChanges = pendingScheduleChanges.length;
     target.innerHTML =
       '<a class="attention-card ' + (callbacks ? "warning" : "success") + '" href="callback-requests.html" style="color:inherit;text-decoration:none"><div class="eyebrow">Callbacks</div><div class="metric">' + callbacks + '</div><div class="detail">' + (callbacks ? "Open the callback queue." : "No follow-up calls waiting.") + '</div></a>' +
       '<a class="attention-card ' + (changes ? "warning" : "info") + '" href="#sideCardWrap" style="color:inherit;text-decoration:none"><div class="eyebrow">Schedule changes</div><div class="metric">' + changes + '</div><div class="detail">' + (changes ? "Review cancelled or no-show appointments." : "No cancelled or no-show appointments.") + '</div></a>' +
+      '<a class="attention-card ' + (leaveToday ? "warning" : "success") + '" href="doctor-leave.html" style="color:inherit;text-decoration:none"><div class="eyebrow">Doctors on leave</div><div class="metric">' + leaveToday + '</div><div class="detail">' + (leaveToday ? "Review cover before accepting bookings." : "No doctor is on leave today.") + '</div></a>' +
+      '<a class="attention-card ' + (scheduleChanges ? "warning" : "info") + '" href="doctor-schedule.html" style="color:inherit;text-decoration:none"><div class="eyebrow">Upcoming schedule changes</div><div class="metric">' + scheduleChanges + '</div><div class="detail">' + (scheduleChanges ? "Review planned doctor-hours changes." : "No doctor-hours changes waiting.") + '</div></a>' +
       '<a class="attention-card info" href="#scheduleHeading" style="color:inherit;text-decoration:none"><div class="eyebrow">Still to see</div><div class="metric">' + remaining + '</div><div class="detail">Confirmed and arrived appointments remaining.</div></a>';
   }
 
@@ -741,10 +760,30 @@ body {
     target.innerHTML = doctors.map(function (doctor) {
       var days = String(doctor.working_days || "").split(",").map(function (day) { return Number(day.trim()); });
       var working = !days.filter(function (day) { return !isNaN(day); }).length || days.indexOf(today) !== -1;
+      var onLeave = currentLeaves.some(function (leave) { return leave.doctor_id === doctor.id; });
       var booked = currentBookings.filter(function (booking) { return booking.doctor_id === doctor.id && booking.status !== "cancelled" && booking.status !== "no_show"; }).length;
       var hours = doctor.start_time && doctor.end_time ? String(doctor.start_time).slice(0, 5) + "–" + String(doctor.end_time).slice(0, 5) : "Hours not set";
-      return '<div class="coverage-item"><div class="name">' + escapeHtml(doctor.name || "Doctor") + '</div><div class="meta">' + (working ? "Working · " + escapeHtml(hours) : "Not scheduled today") + ' · ' + booked + ' booked</div></div>';
+      var slots = doctor.start_time && doctor.end_time ? Math.max(0, Math.floor((minutesFromTime(doctor.end_time) - minutesFromTime(doctor.start_time)) / 15) - booked) : null;
+      return '<div class="coverage-item"><div class="name">' + escapeHtml(doctor.name || "Doctor") + '</div><div class="meta">' + (onLeave ? "On leave today" : working ? "Working · " + escapeHtml(hours) : "Not scheduled today") + ' · ' + booked + ' booked' + (slots !== null && !onLeave ? " · " + slots + " open" : "") + '</div></div>';
     }).join("");
+  }
+
+  function localDateString(date) {
+    var d = date || new Date();
+    var pad = function (value) { return String(value).padStart(2, "0"); };
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+
+  async function loadOperationalUpdates() {
+    var today = localDateString();
+    var results = await Promise.all([
+      supabaseClient.from("doctor_leave").select("doctor_id, leave_start_date, leave_end_date").lte("leave_start_date", today).gte("leave_end_date", today),
+      supabaseClient.from("doctor_schedule_changes").select("id, doctor_id, effective_from").eq("applied", false).gte("effective_from", new Date().toISOString()).limit(20)
+    ]);
+    currentLeaves = results[0].error ? [] : (results[0].data || []);
+    pendingScheduleChanges = results[1].error ? [] : (results[1].data || []);
+    renderAttention();
+    renderDoctorCoverage();
   }
 
   function matchesBookingSearch(booking, query) {
@@ -784,7 +823,10 @@ body {
   function renderBoard() {
     var subtitle = document.getElementById("boardSubtitle");
     var visibleBookings = currentBookings.filter(function (b) {
-      return matchesBookingSearch(b, bookingSearchQuery) && (!doctorFilterId || b.doctor_id === doctorFilterId);
+      return matchesBookingSearch(b, bookingSearchQuery) &&
+        (!doctorFilterId || b.doctor_id === doctorFilterId) &&
+        (!statusFilter || b.status === statusFilter) &&
+        (!sourceFilter || b.source === sourceFilter);
     });
     subtitle.textContent = bookingSearchQuery
       ? visibleBookings.length + " of " + currentBookings.length + " appointments match your search"
@@ -816,6 +858,9 @@ body {
     document.getElementById("colCompleted").innerHTML = completed.length
       ? completed.map(function (b) { return bookingCard(b, false); }).join("")
       : '<div class="empty-column">No completed visits yet.</div>';
+    document.getElementById("mobileScheduleList").innerHTML = visibleBookings.length
+      ? '<div class="board-header"><h2>Today’s appointments</h2><span class="subtitle">Tap an action to update</span></div>' + visibleBookings.map(function (b) { return bookingCard(b, b.id === nextUpId); }).join("")
+      : '<div class="empty-column">No appointments match these filters.</div>';
 
     var sideWrap = document.getElementById("sideCardWrap");
     if (sideRail.length > 0) {
@@ -848,6 +893,20 @@ body {
   document.getElementById("doctorFilter").addEventListener("change", function (event) {
     doctorFilterId = event.target.value;
     renderBoard();
+  });
+  document.getElementById("statusFilter").addEventListener("change", function (event) {
+    statusFilter = event.target.value;
+    renderBoard();
+  });
+  document.getElementById("sourceFilter").addEventListener("change", function (event) {
+    sourceFilter = event.target.value;
+    renderBoard();
+  });
+  document.getElementById("mobileMenuBtn").addEventListener("click", function () {
+    var sidebar = document.querySelector(".sidebar");
+    var collapsed = sidebar.classList.toggle("collapsed");
+    this.setAttribute("aria-expanded", String(!collapsed));
+    this.textContent = collapsed ? "Menu" : "Close";
   });
 
   // ---------- Protected staff actions (event delegation) ----------
@@ -943,12 +1002,14 @@ body {
     if (error || !data || data.length === 0) {
       currentCallbacks = [];
       renderAttention();
+      renderCallbackNotification();
       wrap.style.display = "none";
       return;
     }
 
     currentCallbacks = data;
     renderAttention();
+    renderCallbackNotification();
     wrap.style.display = "block";
     document.getElementById("callbackList").innerHTML = data.map(function (c) {
       var who = (c.patients ? c.patients.name : null) || c.caller_name || "Unknown caller";
@@ -962,6 +1023,22 @@ body {
         '</div></div>';
     }).join("");
   }
+
+  function renderCallbackNotification() {
+    var count = currentCallbacks.length;
+    var dot = document.querySelector("#callbackBell .dot");
+    var text = document.getElementById("notificationText");
+    if (dot) dot.style.display = count ? "block" : "none";
+    if (text) text.textContent = count
+      ? count + " callback request" + (count === 1 ? " is" : "s are") + " waiting. Open Callback Requests to follow up."
+      : "No callback requests waiting.";
+  }
+
+  document.getElementById("callbackBell").addEventListener("click", function () {
+    var panel = document.getElementById("notificationPanel");
+    var visible = panel.classList.toggle("show");
+    this.setAttribute("aria-expanded", String(visible));
+  });
 
   // ---------- Add Booking modal ----------
   var overlay = document.getElementById("modalOverlay");
@@ -1042,7 +1119,9 @@ body {
         invalid_request: "Check the patient and appointment details, then try again.",
         unauthorized: "Your account is not allowed to create bookings."
       };
-      throw new Error(messages[data && data.error_code] || "The booking could not be saved. Please try again.");
+      var bookingFailure = new Error(messages[data && data.error_code] || "The booking could not be saved. Please try again.");
+      bookingFailure.code = data && data.error_code;
+      throw bookingFailure;
     }
     return data;
   }
@@ -1058,6 +1137,16 @@ body {
     return allowedStarts.some(function (start) { return message.indexOf(start) === 0; })
       ? message
       : "The booking could not be saved. Please try again.";
+  }
+
+  async function addFailedBookingFollowup(name, phone, doctorId, errorCode) {
+    if (!["slot_unavailable", "booking_conflict"].includes(errorCode)) return;
+    await supabaseClient.from("callback_requests").insert({
+      caller_name: name,
+      phone_number: phone,
+      doctor_id: doctorId || null,
+      reason: "Booking follow-up: requested appointment slot was unavailable"
+    });
   }
 
   document.getElementById("addBookingForm").addEventListener("submit", async function (e) {
@@ -1092,6 +1181,7 @@ body {
       showToast("Booking saved successfully.");
       loadBoard();
     } catch (err) {
+      try { await addFailedBookingFollowup(name, phone, doctorId, err && err.code); } catch (_) { /* the safe booking error is still shown */ }
       modalError.textContent = safeBookingMessage(err);
       modalError.style.display = "block";
     } finally {
@@ -1196,6 +1286,7 @@ body {
     loadDoctorsIntoSelect();
     loadBoard();
     loadCallbackList();
+    loadOperationalUpdates();
     subscribeToNewBookings();
     subscribeToMissedCalls();
   })();

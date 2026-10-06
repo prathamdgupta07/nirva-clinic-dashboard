@@ -175,10 +175,13 @@ tbody tr:hover { background-color: #FAFBFD; cursor: pointer; }
     <button class="close-btn" id="detailCloseBtn">&times;</button>
     <h2 id="detailName"></h2>
     <p class="sub" id="detailContact"></p>
+    <div id="detailSnapshot" class="call-history-empty">Loading appointment summary…</div>
     <h3 style="font-size:13px;font-weight:700;margin:16px 0 4px;">Call History</h3>
     <div id="callHistoryList"></div>
     <h3 style="font-size:13px;font-weight:700;margin:20px 0 4px;">Booking History</h3>
     <div id="bookingHistoryList"></div>
+    <h3 style="font-size:13px;font-weight:700;margin:20px 0 4px;">Activity History</h3>
+    <div id="auditHistoryList"></div>
   </div>
 </div>
 
@@ -254,6 +257,28 @@ tbody tr:hover { background-color: #FAFBFD; cursor: pointer; }
     return m + "m " + sec + "s";
   }
 
+  function escapeHtml(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+    });
+  }
+
+  async function loadPatientSnapshot(patientId) {
+    var target = document.getElementById("detailSnapshot");
+    var now = new Date().toISOString();
+    var results = await Promise.all([
+      supabaseClient.from("bookings").select("appointment_time, status, doctors(name)").eq("patient_id", patientId).gte("appointment_time", now).in("status", ["confirmed", "arrived"]).order("appointment_time", { ascending: true }).limit(1),
+      supabaseClient.from("calls").select("id, callback_done").eq("patient_id", patientId).in("outcome", ["missed", "callback_requested"]).eq("callback_done", false).limit(1)
+    ]);
+    var next = results[0].error ? null : (results[0].data || [])[0];
+    var callbackWaiting = !results[1].error && (results[1].data || []).length > 0;
+    target.innerHTML = '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0;padding:12px;background:var(--bg);border-radius:10px;font-size:12.5px;">' +
+      '<div><strong>Next appointment</strong><br>' + (next ? escapeHtml(formatCallTime(next.appointment_time)) : "None scheduled") + '</div>' +
+      '<div><strong>Current doctor</strong><br>' + (next && next.doctors ? escapeHtml(next.doctors.name) : "—") + '</div>' +
+      '<div><strong>Callback status</strong><br>' + (callbackWaiting ? "Callback waiting" : "No callback waiting") + '</div>' +
+      '<div><strong>Booking state</strong><br>' + (next ? escapeHtml(bookingStatusLabel(next.status)) : "No active booking") + '</div></div>';
+  }
+
   async function loadCallHistory(patientId) {
     var list = document.getElementById("callHistoryList");
     list.innerHTML = '<div class="call-history-empty">Loading...</div>';
@@ -325,6 +350,25 @@ tbody tr:hover { background-color: #FAFBFD; cursor: pointer; }
     }).join("");
   }
 
+  async function loadAuditHistory(patientId) {
+    var list = document.getElementById("auditHistoryList");
+    list.innerHTML = '<div class="call-history-empty">Loading...</div>';
+    var { data, error } = await supabaseClient
+      .from("appointment_events")
+      .select("action, source, created_at, bookings!inner(patient_id)")
+      .eq("bookings.patient_id", patientId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (error || !data || data.length === 0) {
+      list.innerHTML = '<div class="call-history-empty">No recorded appointment activity yet.</div>';
+      return;
+    }
+    list.innerHTML = data.map(function (event) {
+      var label = bookingStatusLabel(event.action || "updated");
+      return '<div class="call-row"><div><div>' + escapeHtml(label) + '</div><div class="meta">' + escapeHtml(formatCallTime(event.created_at)) + ' · ' + escapeHtml(event.source === "system" ? "Automatic" : event.source === "ai_agent" ? "AI Agent" : "Staff") + '</div></div></div>';
+    }).join("");
+  }
+
   document.getElementById("patientsBody").addEventListener("click", function (e) {
     var row = e.target.closest("tr[data-name]");
     if (!row) return;
@@ -333,8 +377,10 @@ tbody tr:hover { background-color: #FAFBFD; cursor: pointer; }
     var email = row.getAttribute("data-email");
     document.getElementById("detailContact").textContent = [phone, email].filter(Boolean).join(" · ") || "No contact info";
     overlay.style.display = "flex";
+    loadPatientSnapshot(row.getAttribute("data-id"));
     loadCallHistory(row.getAttribute("data-id"));
     loadBookingHistory(row.getAttribute("data-id"));
+    loadAuditHistory(row.getAttribute("data-id"));
   });
   document.getElementById("detailCloseBtn").addEventListener("click", function () {
     overlay.style.display = "none";
