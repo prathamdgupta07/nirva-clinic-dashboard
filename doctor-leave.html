@@ -280,12 +280,25 @@ tbody tr:last-child td { border-bottom: none; }
       var profileResult = await supabaseClient.from("profiles").select("id, full_name").in("id", actorIds);
       if (!profileResult.error) (profileResult.data || []).forEach(function (profile) { actorNames[profile.id] = profile.full_name; });
     }
+    var auditByLeaveId = {};
+    var auditResult = await supabaseClient.from("activity_audit")
+      .select("entity_id, action, actor_name, created_at")
+      .eq("entity_type", "doctor_leave")
+      .in("entity_id", data.map(function (row) { return row.id; }))
+      .order("created_at", { ascending: true });
+    if (!auditResult.error) {
+      (auditResult.data || []).forEach(function (event) {
+        if (!auditByLeaveId[event.entity_id]) auditByLeaveId[event.entity_id] = {};
+        auditByLeaveId[event.entity_id][event.action] = event;
+      });
+    }
     var todayStr = new Date().toISOString().slice(0, 10);
     body.innerHTML = data.map(function (row) {
       var doctorName = (row.doctors && row.doctors.name) || "Unknown doctor";
-      var addedBy = actorNames[row.created_by] || "System";
+      var audit = auditByLeaveId[row.id] || {};
+      var addedBy = (audit.doctor_leave_created && audit.doctor_leave_created.actor_name) || actorNames[row.created_by] || "System";
       var recorded = "Added by " + addedBy + "<br><span style=\"font-size:12px;color:var(--text-muted)\">" + formatDateTime(row.created_at) + "</span>";
-      if (row.updated_at) recorded += "<br><span style=\"font-size:12px;color:var(--text-muted)\">Edited by " + (actorNames[row.updated_by] || "Staff") + " · " + formatDateTime(row.updated_at) + "</span>";
+      if (row.updated_at) recorded += "<br><span style=\"font-size:12px;color:var(--text-muted)\">Edited by " + ((audit.doctor_leave_updated && audit.doctor_leave_updated.actor_name) || actorNames[row.updated_by] || "Staff") + " · " + formatDateTime(row.updated_at) + "</span>";
       var isPast = row.leave_end_date < todayStr;
       var status = isPast
         ? '<span class="pill past">Past</span>'
