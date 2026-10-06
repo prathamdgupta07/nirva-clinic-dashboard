@@ -235,6 +235,8 @@ tbody tr:last-child td { border-bottom: none; }
   var leaveSuccess = document.getElementById("leaveSuccess");
   var leaveSubmitBtn = document.getElementById("leaveSubmitBtn");
   var currentSession = null;
+  var currentRole = null;
+  var currentDoctorId = null;
   var leaveRowsById = {};
 
   function showLeaveError(message) {
@@ -303,7 +305,10 @@ tbody tr:last-child td { border-bottom: none; }
       var status = isPast
         ? '<span class="pill past">Past</span>'
         : '<span class="pill upcoming">Upcoming</span>';
-      return "<tr><td>" + escapeHtml(doctorName) + "</td><td>" + formatDate(row.leave_start_date) + " – " + formatDate(row.leave_end_date) + "</td><td>" + escapeHtml(row.reason || "—") + "</td><td>" + recorded + "</td><td>" + status + "</td><td><button class=\"btn-small\" data-edit-leave=\"" + row.id + "\">Edit</button></td></tr>";
+      var editControl = currentRole === "doctor" && row.doctor_id === currentDoctorId
+        ? '<button class="btn-small" data-edit-leave="' + row.id + '">Edit</button>'
+        : "";
+      return "<tr><td>" + escapeHtml(doctorName) + "</td><td>" + formatDate(row.leave_start_date) + " – " + formatDate(row.leave_end_date) + "</td><td>" + escapeHtml(row.reason || "—") + "</td><td>" + recorded + "</td><td>" + status + "</td><td>" + editControl + "</td></tr>";
     }).join("");
   }
 
@@ -406,9 +411,10 @@ tbody tr:last-child td { border-bottom: none; }
     if (role === "doctor") {
       var { data: doc } = await supabaseClient
         .from("doctors")
-        .select("name")
+        .select("id, name")
         .eq("user_id", session.user.id)
         .maybeSingle();
+      currentDoctorId = doc && doc.id;
       displayName = (doc && doc.name) || (profile && profile.full_name) || "Doctor";
     } else if (profile && profile.full_name) {
       displayName = profile.full_name;
@@ -424,6 +430,11 @@ tbody tr:last-child td { border-bottom: none; }
     if (!session) return;
     currentSession = session;
     var userRole = await loadIdentityBadge(session);
+    currentRole = userRole;
+    if (currentRole !== "doctor") {
+      leaveForm.style.display = "none";
+      document.querySelector(".form-note").textContent = "Only the doctor linked to a leave record can add or edit it. Staff can view leave only.";
+    }
     loadDoctors();
     loadLeave();
   })();
