@@ -155,14 +155,6 @@ body {
 .section-header { display: flex; align-items: baseline; justify-content: space-between; margin: 4px 0 12px; }
 .section-header h2 { margin: 0; font-size: 15.5px; }
 .section-header span { color: var(--text-muted); font-size: 12.5px; }
-.attention-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
-.attention-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 15px; }
-.attention-card .eyebrow { color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .35px; }
-.attention-card .metric { font-size: 25px; font-weight: 700; margin: 5px 0 3px; }
-.attention-card .detail { color: var(--text-muted); font-size: 12.5px; line-height: 1.4; }
-.attention-card.warning { border-left: 4px solid var(--amber); }
-.attention-card.info { border-left: 4px solid var(--blue); }
-.attention-card.success { border-left: 4px solid var(--green); }
 .workspace-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; margin-bottom: 24px; }
 .coverage-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .coverage-item { border: 1px solid var(--border); background: var(--bg); border-radius: 10px; padding: 11px; }
@@ -183,7 +175,6 @@ body {
 .board-header select { border: 1px solid var(--border); border-radius: 8px; background: white; color: var(--text-dark); font: inherit; font-size: 12.5px; padding: 7px 10px; max-width: 200px; }
 
 .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
-.mobile-schedule { display: none; }
 
 .column {
   background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 14px;
@@ -299,26 +290,7 @@ body {
 @media (max-width: 1000px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .board { grid-template-columns: 1fr; }
-  .attention-grid { grid-template-columns: 1fr; }
   .workspace-grid { grid-template-columns: 1fr; }
-}
-@media (max-width: 760px) {
-  .app { display: block; }
-  .sidebar { width: 100%; height: auto; min-height: 0; position: static; padding: 12px; border-right: 0; border-bottom: 1px solid var(--border); }
-  .sidebar .brand { padding: 0 6px 10px; }
-  .mobile-menu-btn { display: inline-flex !important; margin-left: auto; }
-  .sidebar.collapsed nav, .sidebar.collapsed .bottom { display: none; }
-  .sidebar nav, .sidebar .bottom { flex-direction: row; gap: 4px; overflow-x: auto; padding: 0; border: 0; margin: 0; }
-  .sidebar nav a, .sidebar .bottom a { white-space: nowrap; padding: 8px 10px; }
-  .topbar { padding: 12px 16px; }
-  .topbar .search { width: 100%; }.topbar .bell, .topbar .user .info { display: none; }
-  .topbar .right { gap: 8px; margin-left: 12px; }.topbar .user { gap: 0; }
-  .content { padding: 20px 16px; }
-  .greeting .right-actions { width: 100%; flex-wrap: wrap; }.greeting .date-chip { display: none; }
-  .stats-grid, .coverage-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .board-header .controls { width: 100%; }.board-header select { flex: 1; max-width: none; }
-  .stat-card { padding: 14px; }.card-actions button { min-height: 40px; }
-  .board { display: none; }.mobile-schedule { display: block; }.mobile-schedule .booking-card { margin-bottom: 10px; }
 }
 </style>
 <link rel="stylesheet" href="clinic-theme.css">
@@ -332,7 +304,6 @@ body {
     <div class="brand">
       <div class="logo">N</div>
       <span>Nirva</span>
-      <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-expanded="true" style="display:none;border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:7px 10px;font:inherit;font-size:12px;font-weight:600;">Menu</button>
     </div>
     <nav>
       <a href="dashboard-light.html" class="active">
@@ -435,14 +406,6 @@ body {
         </div>
       </div>
 
-      <div class="section-header">
-        <h2>Needs Attention</h2>
-        <span>Quick actions for the team</span>
-      </div>
-      <div class="attention-grid" id="attentionGrid" aria-live="polite">
-        <div class="attention-card info"><div class="eyebrow">Loading</div><div class="metric">—</div><div class="detail">Preparing today’s priorities.</div></div>
-      </div>
-
       <div class="workspace-grid">
         <section class="side-card">
           <h3>Doctor Coverage Today</h3>
@@ -488,7 +451,6 @@ body {
           <div id="colCompleted"></div>
         </div>
       </div>
-      <div class="mobile-schedule" id="mobileScheduleList" aria-label="Today's appointments"></div>
 
       <!-- No-show / Cancelled side rail -->
       <div class="side-card" id="sideCardWrap" style="display:none;">
@@ -712,7 +674,6 @@ body {
   var currentBookings = [];
   var currentCallbacks = [];
   var currentLeaves = [];
-  var pendingScheduleChanges = [];
   var bookingSearchQuery = "";
   var doctorFilterId = "";
   var statusFilter = "";
@@ -764,26 +725,6 @@ body {
     renderActivity();
   }
 
-  function renderAttention() {
-    var target = document.getElementById("attentionGrid");
-    if (!target) return;
-    var callbacks = currentCallbacks.length;
-    var changes = currentBookings.filter(function (b) { return b.status === "no_show" || b.status === "cancelled"; }).length;
-    var remaining = currentBookings.filter(function (b) { return b.status === "confirmed" || b.status === "arrived"; }).length;
-    var today = localDateString();
-    var leaveToday = currentLeaves.filter(function (leave) {
-      return leave.leave_start_date <= today && leave.leave_end_date >= today;
-    }).length;
-    var upcomingLeaveCount = currentLeaves.length;
-    var scheduleChanges = pendingScheduleChanges.length;
-    target.innerHTML =
-      '<a class="attention-card ' + (callbacks ? "warning" : "success") + '" href="callback-requests.html" style="color:inherit;text-decoration:none"><div class="eyebrow">Callbacks</div><div class="metric">' + callbacks + '</div><div class="detail">' + (callbacks ? "Open the callback queue." : "No follow-up calls waiting.") + '</div></a>' +
-      '<a class="attention-card ' + (changes ? "warning" : "info") + '" href="#sideCardWrap" style="color:inherit;text-decoration:none"><div class="eyebrow">Schedule changes</div><div class="metric">' + changes + '</div><div class="detail">' + (changes ? "Review cancelled or no-show appointments." : "No cancelled or no-show appointments.") + '</div></a>' +
-      '<a class="attention-card ' + (upcomingLeaveCount ? "warning" : "success") + '" href="doctor-leave.html" style="color:inherit;text-decoration:none"><div class="eyebrow">Doctor leave</div><div class="metric">' + upcomingLeaveCount + '</div><div class="detail">' + (leaveToday ? leaveToday + " on leave today. Review cover before accepting bookings." : upcomingLeaveCount ? "Upcoming leave is scheduled. Review cover before accepting bookings." : "No doctor leave is scheduled.") + '</div></a>' +
-      '<a class="attention-card ' + (scheduleChanges ? "warning" : "info") + '" href="doctor-schedule.html" style="color:inherit;text-decoration:none"><div class="eyebrow">Upcoming schedule changes</div><div class="metric">' + scheduleChanges + '</div><div class="detail">' + (scheduleChanges ? "Review planned doctor-hours changes." : "No doctor-hours changes waiting.") + '</div></a>' +
-      '<a class="attention-card info" href="#scheduleHeading" style="color:inherit;text-decoration:none"><div class="eyebrow">Still to see</div><div class="metric">' + remaining + '</div><div class="detail">Confirmed and arrived appointments remaining.</div></a>';
-  }
-
   function renderDoctorCoverage() {
     var target = document.getElementById("doctorCoverage");
     if (!target) return;
@@ -815,13 +756,8 @@ body {
 
   async function loadOperationalUpdates() {
     var today = localDateString();
-    var results = await Promise.all([
-      supabaseClient.from("doctor_leave").select("doctor_id, leave_start_date, leave_end_date").gte("leave_end_date", today).order("leave_start_date", { ascending: true }).limit(30),
-      supabaseClient.from("doctor_schedule_changes").select("id, doctor_id, effective_from").eq("applied", false).gte("effective_from", new Date().toISOString()).limit(20)
-    ]);
-    currentLeaves = results[0].error ? [] : (results[0].data || []);
-    pendingScheduleChanges = results[1].error ? [] : (results[1].data || []);
-    renderAttention();
+    var result = await supabaseClient.from("doctor_leave").select("doctor_id, leave_start_date, leave_end_date").gte("leave_end_date", today).order("leave_start_date", { ascending: true }).limit(30);
+    currentLeaves = result.error ? [] : (result.data || []);
     renderDoctorCoverage();
   }
 
@@ -897,10 +833,6 @@ body {
     document.getElementById("colCompleted").innerHTML = completed.length
       ? completed.map(function (b) { return bookingCard(b, false); }).join("")
       : '<div class="empty-column">No completed visits yet.</div>';
-    document.getElementById("mobileScheduleList").innerHTML = visibleBookings.length
-      ? '<div class="board-header"><h2>Today’s appointments</h2><span class="subtitle">Tap an action to update</span></div>' + visibleBookings.map(function (b) { return bookingCard(b, b.id === nextUpId); }).join("")
-      : '<div class="empty-column">No appointments match these filters.</div>';
-
     var sideWrap = document.getElementById("sideCardWrap");
     if (sideRail.length > 0) {
       sideWrap.style.display = "block";
@@ -920,7 +852,6 @@ body {
     document.getElementById("statConfirmed").textContent = confirmed.length;
     document.getElementById("statArrived").textContent = arrived.length;
     document.getElementById("statCompleted").textContent = completed.length;
-    renderAttention();
     renderDoctorCoverage();
   }
 
@@ -940,12 +871,6 @@ body {
   document.getElementById("sourceFilter").addEventListener("change", function (event) {
     sourceFilter = event.target.value;
     renderBoard();
-  });
-  document.getElementById("mobileMenuBtn").addEventListener("click", function () {
-    var sidebar = document.querySelector(".sidebar");
-    var collapsed = sidebar.classList.toggle("collapsed");
-    this.setAttribute("aria-expanded", String(!collapsed));
-    this.textContent = collapsed ? "Menu" : "Close";
   });
 
   // ---------- Protected staff actions (event delegation) ----------
@@ -1040,14 +965,12 @@ body {
 
     if (error || !data || data.length === 0) {
       currentCallbacks = [];
-      renderAttention();
       renderCallbackNotification();
       wrap.style.display = "none";
       return;
     }
 
     currentCallbacks = data;
-    renderAttention();
     renderCallbackNotification();
     wrap.style.display = "block";
     document.getElementById("callbackList").innerHTML = data.map(function (c) {
