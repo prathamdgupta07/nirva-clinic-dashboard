@@ -155,15 +155,11 @@ body {
 .section-header { display: flex; align-items: baseline; justify-content: space-between; margin: 4px 0 12px; }
 .section-header h2 { margin: 0; font-size: 15.5px; }
 .section-header span { color: var(--text-muted); font-size: 12.5px; }
-.workspace-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; margin-bottom: 24px; }
+.workspace-grid { margin-bottom: 24px; }
 .coverage-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .coverage-item { border: 1px solid var(--border); background: var(--bg); border-radius: 10px; padding: 11px; }
 .coverage-item .name { font-size: 13px; font-weight: 700; }
 .coverage-item .meta { color: var(--text-muted); font-size: 11.5px; margin-top: 3px; }
-.activity-list { display: flex; flex-direction: column; gap: 10px; }
-.activity-item { display: flex; align-items: flex-start; gap: 9px; color: var(--text-muted); font-size: 12.5px; line-height: 1.35; }
-.activity-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--blue); margin-top: 4px; flex: 0 0 auto; }
-.activity-dot.success { background: var(--green); }.activity-dot.warning { background: var(--amber); }
 .notification-panel { position: absolute; right: 0; top: 44px; width: min(340px, calc(100vw - 32px)); background: white; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 18px 38px rgba(24,50,75,.16); padding: 14px; z-index: 30; display: none; }
 .notification-panel.show { display: block; }.notification-panel h3 { margin: 0 0 8px; font-size: 13px; }.notification-panel p { margin: 0; color: var(--text-muted); font-size: 12.5px; line-height: 1.4; }
 
@@ -290,7 +286,6 @@ body {
 @media (max-width: 1000px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .board { grid-template-columns: 1fr; }
-  .workspace-grid { grid-template-columns: 1fr; }
 }
 </style>
 <link rel="stylesheet" href="clinic-theme.css">
@@ -325,6 +320,10 @@ body {
       <a href="patients.html">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Patients
+      </a>
+      <a href="activity-history.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15v-4M12 15V7M17 15v-7"/></svg>
+        Activity History
       </a>
     </nav>
     <div class="bottom">
@@ -410,10 +409,6 @@ body {
         <section class="side-card">
           <h3>Doctor Coverage Today</h3>
           <div class="coverage-grid" id="doctorCoverage"><div class="empty-column">Loading doctor availability…</div></div>
-        </section>
-        <section class="side-card">
-          <h3>Live Activity</h3>
-          <div class="activity-list" id="activityList"><div class="activity-item"><span class="activity-dot"></span><span>Waiting for today’s activity.</span></div></div>
         </section>
       </div>
 
@@ -678,52 +673,6 @@ body {
   var doctorFilterId = "";
   var statusFilter = "";
   var sourceFilter = "";
-  var activityEntries = [];
-  var hasInitialActivity = false;
-
-  // Activity deliberately contains no patient names, phone numbers, record IDs,
-  // or backend error text. It is safe for a staff workspace at a glance.
-  function addActivity(message, tone) {
-    activityEntries.unshift({ message: message, tone: tone || "info", time: new Date() });
-    activityEntries = activityEntries.slice(0, 6);
-    renderActivity();
-  }
-
-  function renderActivity() {
-    var list = document.getElementById("activityList");
-    if (!list) return;
-    list.innerHTML = activityEntries.map(function (entry) {
-      return '<div class="activity-item"><span class="activity-dot ' + escapeHtml(entry.tone) + '"></span><span>' + escapeHtml(entry.message) + ' · ' + escapeHtml(entry.time.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })) + '</span></div>';
-    }).join("");
-  }
-
-  function activityMessage(action, actor) {
-    var labels = {
-      booking_created: "created a booking", booking_arrived: "marked an appointment as arrived", booking_completed: "marked an appointment as completed", booking_cancelled: "cancelled an appointment", booking_no_show: "marked an appointment as no-show", booking_rescheduled: "rescheduled an appointment",
-      callback_created: "created a callback request", callback_contacted: "marked a callback as contacted",
-      doctor_leave_created: "recorded doctor leave", doctor_leave_updated: "updated doctor leave",
-      doctor_schedule_created: "recorded a doctor schedule change"
-    };
-    return actor + " " + (labels[action] || "recorded an operational update") + ".";
-  }
-
-  async function loadPersistentActivity() {
-    var result = await supabaseClient.from("activity_audit")
-      .select("action, actor_user_id, actor_name, created_at")
-      .order("created_at", { ascending: false }).limit(8);
-    if (result.error || !result.data) return;
-    var ids = result.data.map(function (row) { return row.actor_user_id; }).filter(Boolean);
-    var names = {};
-    if (ids.length) {
-      var profiles = await supabaseClient.from("profiles").select("id, full_name").in("id", ids);
-      if (!profiles.error) (profiles.data || []).forEach(function (profile) { names[profile.id] = profile.full_name; });
-    }
-    activityEntries = result.data.map(function (row) {
-      var actor = row.actor_name || names[row.actor_user_id] || (row.actor_user_id ? "Staff member" : "System");
-      return { message: activityMessage(row.action, actor), tone: row.action === "booking_no_show" ? "warning" : "info", time: new Date(row.created_at) };
-    });
-    renderActivity();
-  }
 
   function renderDoctorCoverage() {
     var target = document.getElementById("doctorCoverage");
@@ -789,7 +738,6 @@ body {
 
     currentBookings = data || [];
     if (!hasInitialActivity) {
-      addActivity("Today’s schedule was loaded.", "info");
       hasInitialActivity = true;
     }
     renderBoard();
@@ -916,7 +864,6 @@ body {
         btn.disabled = false;
         return;
       }
-      addActivity("A callback was marked complete.", "success");
       showToast("Callback completed.");
       loadCallbackList();
       return;
@@ -940,7 +887,6 @@ body {
       btn.disabled = false;
       return;
     }
-    addActivity("An appointment status was updated.", "success");
     showToast("Appointment updated.");
     loadBoard();
   });
@@ -1139,7 +1085,6 @@ body {
 
       overlay.style.display = "none";
       bookingRequestId = null;
-      addActivity("A staff booking was saved.", "success");
       showToast("Booking saved successfully.");
       loadBoard();
     } catch (err) {
@@ -1162,7 +1107,6 @@ body {
           if (row.source === "ai_agent") {
             showToast("New booking from AI Agent");
             playChime();
-            addActivity("A new AI booking was received.", "success");
           }
           loadBoard();
         }
@@ -1181,11 +1125,9 @@ body {
         if (payload.new.outcome === "missed") {
           showToast("AI missed a call — needs a callback", "missed-call");
           playChime();
-          addActivity("A missed call needs a callback.", "warning");
         } else if (payload.new.outcome === "callback_requested") {
           showToast("Doctor unavailable — patient needs a callback", "missed-call");
           playChime();
-          addActivity("A doctor-availability callback was requested.", "warning");
         }
         loadCallbackList();
       })
@@ -1249,7 +1191,6 @@ body {
     loadBoard();
     loadCallbackList();
     loadOperationalUpdates();
-    loadPersistentActivity();
     subscribeToNewBookings();
     subscribeToMissedCalls();
   })();
