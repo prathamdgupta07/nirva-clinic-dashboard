@@ -375,7 +375,7 @@ body {
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
 <script src="config.js?v=20261001"></script>
 <script>
   // ---------- Session guard ----------
@@ -383,11 +383,7 @@ body {
   (async function checkExistingSession() {
     var { data } = await supabaseClient.auth.getSession();
     if (data && data.session) {
-      // Still record this as a login: an already-valid session in a brand
-      // new tab is a real "logging in" event for that tab, and skipping it
-      // here was why Login History wasn't updating on repeat visits.
-      await recordLogin(data.session.user.id);
-      window.location.href = "dashboard-light.html";
+      window.location.href = "mfa.html";
     }
   })();
 
@@ -430,12 +426,7 @@ body {
       return;
     }
 
-    // Record this login for the Login History view in Settings.
-    if (data && data.user) {
-      await recordLogin(data.user.id);
-    }
-
-    window.location.href = "dashboard-light.html";
+    window.location.href = "mfa.html";
   });
 
   // ---------- Forgot password panel ----------
