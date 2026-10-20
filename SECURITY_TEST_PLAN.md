@@ -23,23 +23,13 @@ accounts. Do not use real patient data or production webhook secrets.
 5. As the unlinked account, query patient, booking, callback, and audit REST
    endpoints. Every query must return no data or an authorization error.
 
-## MFA checks
+## Sign-in checks
 
-1. Sign in with an account that has no factor. It must go to `mfa.html`, not a
-   clinic page.
-2. Enroll a TOTP factor and verify a current code. Confirm the session reports
-   `aal2`, then confirm clinic pages load.
-3. Sign out and sign in again. Confirm the code challenge is required before
-   the dashboard loads.
-4. With any account, make a REST request using an AAL1 token before MFA
-   enrollment/challenge. It must be rejected by the restrictive RLS policy.
-5. Repeat the same request with an AAL2 token and confirm normal role policies
-   still apply.
-6. Call each dashboard mutation Edge Function (`staff-book-appointment`,
-   `staff-complete-callback`, `staff-appointment-action`, and
-   `update-doctor-leave`) with a valid AAL1 token. Each must return HTTP 403
-   with the safe `mfa_required` code; repeat with an AAL2 token and confirm
-   the normal role checks still apply.
+1. Sign in with email and password. Confirm a valid session opens the dashboard
+   without a second-factor challenge.
+2. Sign out and confirm clinic pages redirect to login when no session exists.
+3. Confirm staff and doctor role restrictions still apply to direct REST calls
+   and dashboard mutation Edge Functions.
 
 ## Webhook checks
 
@@ -74,5 +64,4 @@ errors.
 ## Release evidence
 
 Record the date, tester, environment, test-account aliases, and result for
-each check. Treat a role bypass, MFA bypass for an enrolled account, duplicate
-call record, missing header, or exposed sensitive error as a release blocker.
+each check. Treat a role bypass, duplicate call record, missing header, or exposed sensitive error as a release blocker.

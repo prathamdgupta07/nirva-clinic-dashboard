@@ -72,44 +72,5 @@ window.addEventListener("pagehide", function () {
   });
 });
 
-// ---------- MFA access gate ----------
-// Every authenticated dashboard page sends the user through mfa.html until a
-// TOTP factor is enrolled and the current session has completed its challenge.
-// Database policies independently require AAL2 for every protected table.
-var NIRVA_MFA_PAGE = "mfa.html";
-
-function nirvaMfaExemptPage() {
-  var page = window.location.pathname.split("/").pop() || "";
-  return page === "login.html" || page === "reset-password.html" || page === NIRVA_MFA_PAGE;
-}
-
-async function getNirvaMfaStatus() {
-  var assurance = await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (assurance.error) return { error: assurance.error };
-  var factors = await supabaseClient.auth.mfa.listFactors();
-  if (factors.error) return { error: factors.error };
-  var hasVerifiedFactor = ((factors.data.totp || []).concat(factors.data.phone || []))
-    .some(function (factor) { return factor.status === "verified"; });
-  return {
-    hasVerifiedFactor: hasVerifiedFactor,
-    currentLevel: assurance.data.currentLevel,
-    nextLevel: assurance.data.nextLevel
-  };
-}
-
-async function enforceNirvaMfaGate() {
-  if (nirvaMfaExemptPage()) return;
-  var sessionResult = await supabaseClient.auth.getSession();
-  if (!sessionResult.data || !sessionResult.data.session) {
-    window.location.replace("login.html");
-    return;
-  }
-  var status = await getNirvaMfaStatus();
-  if (status.error || !status.hasVerifiedFactor || status.currentLevel !== "aal2") {
-    window.location.replace(NIRVA_MFA_PAGE);
-  }
-}
-
-// Run as soon as the client library and configuration load on every page.
-// Individual pages still retain their existing session checks.
-void enforceNirvaMfaGate();
+// Dashboard pages retain their own Supabase session checks. Sign-in uses the
+// normal email/password flow; no second-factor challenge is required.
