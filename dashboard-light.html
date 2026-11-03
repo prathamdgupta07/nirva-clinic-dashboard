@@ -307,6 +307,12 @@ body {
 .callback-footer .callback-show-more { margin-top: 0; padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--card-bg); text-decoration: none; }
 .callback-footer .callback-show-more:hover { background: var(--blue-soft); }
 @media (max-width: 600px) { #callbackCardWrap .callback-row { flex-direction: column; align-items: flex-start; } }
+
+/* Patient details form their own tinted card beside the callback action. */
+#callbackCardWrap .callback-row .info { flex: 1; background: #FFF5F5; border: 1px solid #F5CDCD; border-radius: 10px; padding: 14px 16px; }
+.callback-footer .callback-show-more { padding: 4px 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.callback-footer .callback-show-more:hover { background: transparent; text-decoration: underline; }
+@media (max-width: 600px) { #callbackCardWrap .callback-row .info { width: 100%; } }
 </style>
 <link rel="stylesheet" href="clinic-theme.css">
 </head>
