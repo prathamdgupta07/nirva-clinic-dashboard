@@ -287,6 +287,14 @@ body {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .board { grid-template-columns: 1fr; }
 }
+
+/* Keep each appointment section compact while preserving its heading. */
+.appointment-list { overflow-y: auto; overscroll-behavior-y: contain; scrollbar-gutter: stable; min-height: 0; }
+#colConfirmed, #colArrived, #colCompleted { display: flex; flex-direction: column; gap: 10px; }
+.appointment-list > * { flex-shrink: 0; }
+.appointment-list:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.callback-show-more { display: inline-block; margin-top: 12px; color: var(--blue); font-size: 13px; font-weight: 600; }
+.callback-show-more[hidden] { display: none; }
 </style>
 <link rel="stylesheet" href="clinic-theme.css">
 </head>
@@ -420,6 +428,7 @@ body {
           <span class="subtitle">Missed calls the AI couldn't complete</span>
         </div>
         <div id="callbackList"></div>
+        <a id="callbackShowMore" class="callback-show-more" href="callback-requests.html" hidden>Show more</a>
       </div>
 
       <!-- Board -->
@@ -436,22 +445,22 @@ body {
       <div class="board">
         <div class="column confirmed">
           <div class="column-title">Confirmed <span class="count" id="countConfirmed">0</span></div>
-          <div id="colConfirmed"></div>
+          <div id="colConfirmed" class="appointment-list" role="region" aria-label="Confirmed appointments" tabindex="0"></div>
         </div>
         <div class="column arrived">
           <div class="column-title">Arrived <span class="count" id="countArrived">0</span></div>
-          <div id="colArrived"></div>
+          <div id="colArrived" class="appointment-list" role="region" aria-label="Arrived appointments" tabindex="0"></div>
         </div>
         <div class="column completed">
           <div class="column-title">Completed <span class="count" id="countCompleted">0</span></div>
-          <div id="colCompleted"></div>
+          <div id="colCompleted" class="appointment-list" role="region" aria-label="Completed appointments" tabindex="0"></div>
         </div>
       </div>
 
       <!-- No-show / Cancelled side rail -->
       <div class="side-card" id="sideCardWrap" style="display:none;">
         <h3>No-show / Cancelled Today</h3>
-        <div id="sideRailList"></div>
+        <div id="sideRailList" class="appointment-list" role="region" aria-label="No-show and cancelled appointments" tabindex="0"></div>
       </div>
 
     </div>
@@ -741,6 +750,21 @@ body {
     renderBoard();
   }
 
+  function sizeAppointmentLists() {
+    ["colConfirmed", "colArrived", "colCompleted", "sideRailList"].forEach(function (id) {
+      var list = document.getElementById(id);
+      if (!list) return;
+      var rows = Array.from(list.children);
+      list.style.maxHeight = "none";
+      if (rows.length > 3) {
+        var top = rows[0].getBoundingClientRect().top;
+        var bottom = rows[2].getBoundingClientRect().bottom;
+        list.style.maxHeight = Math.ceil(bottom - top) + "px";
+      }
+    });
+  }
+  window.addEventListener("resize", sizeAppointmentLists);
+
   function renderBoard() {
     var subtitle = document.getElementById("boardSubtitle");
     var visibleBookings = currentBookings.filter(function (b) {
@@ -799,6 +823,7 @@ body {
     document.getElementById("statArrived").textContent = arrived.length;
     document.getElementById("statCompleted").textContent = completed.length;
     renderDoctorCoverage();
+    requestAnimationFrame(sizeAppointmentLists);
   }
 
   document.getElementById("bookingSearch").addEventListener("input", function (event) {
@@ -927,9 +952,10 @@ body {
     }
 
     currentCallbacks = data;
+    document.getElementById("callbackShowMore").hidden = data.length <= 1;
     renderCallbackNotification();
     wrap.style.display = "block";
-    document.getElementById("callbackList").innerHTML = data.map(function (c) {
+    document.getElementById("callbackList").innerHTML = data.slice(0, 1).map(function (c) {
       var who = (c.patients ? c.patients.name : null) || c.caller_name || "Unknown caller";
       var showPhoneSeparately = c.phone_number && who !== c.phone_number;
       var reason = c.target_type === "callback_request" ? (c.reason || "Callback requested") : callbackReasonLabel(c.outcome);
