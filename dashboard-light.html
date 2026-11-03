@@ -295,6 +295,18 @@ body {
 .appointment-list:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
 .callback-show-more { display: inline-block; margin-top: 12px; color: var(--blue); font-size: 13px; font-weight: 600; }
 .callback-show-more[hidden] { display: none; }
+
+#callbackCardWrap { margin-bottom: 28px; }
+#callbackCardWrap .card-header h2 { margin: 0 0 14px; font-size: 15.5px; }
+#callbackCardWrap .callback-row { border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg); padding: 16px; gap: 20px; }
+#callbackCardWrap .callback-row .info { min-width: 0; }
+#callbackCardWrap .callback-row .phone { overflow-wrap: anywhere; }
+.callback-reason { color: #B91C1C; font-size: 12.5px; font-weight: 600; margin-top: 7px; line-height: 1.5; }
+.callback-footer { display: flex; justify-content: flex-end; padding-top: 18px; padding-bottom: 6px; }
+.callback-footer:has(.callback-show-more[hidden]) { display: none; }
+.callback-footer .callback-show-more { margin-top: 0; padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--card-bg); text-decoration: none; }
+.callback-footer .callback-show-more:hover { background: var(--blue-soft); }
+@media (max-width: 600px) { #callbackCardWrap .callback-row { flex-direction: column; align-items: flex-start; } }
 </style>
 <link rel="stylesheet" href="clinic-theme.css">
 </head>
@@ -425,10 +437,9 @@ body {
       <div class="card" id="callbackCardWrap" style="display:none;">
         <div class="card-header">
           <h2>Needs Callback</h2>
-          <span class="subtitle">Missed calls the AI couldn't complete</span>
         </div>
         <div id="callbackList"></div>
-        <a id="callbackShowMore" class="callback-show-more" href="callback-requests.html" hidden>Show more</a>
+        <div class="callback-footer"><a id="callbackShowMore" class="callback-show-more" href="callback-requests.html" hidden>Show more</a></div>
       </div>
 
       <!-- Board -->
@@ -960,9 +971,8 @@ body {
       var showPhoneSeparately = c.phone_number && who !== c.phone_number;
       var reason = c.target_type === "callback_request" ? (c.reason || "Callback requested") : callbackReasonLabel(c.outcome);
       return '<div class="callback-row">' +
-        '<div class="info"><div class="phone">' + escapeHtml(who) + (showPhoneSeparately ? " — " + escapeHtml(c.phone_number) : "") + '</div><div class="meta">' + escapeHtml(reason) + " · " + formatCallTime(c.created_at) + '</div></div>' +
+        '<div class="info"><div class="phone">' + escapeHtml(who) + (showPhoneSeparately ? " — " + escapeHtml(c.phone_number) : "") + '</div><div class="callback-reason">' + escapeHtml(reason) + '</div><div class="meta">' + formatCallTime(c.created_at) + '</div></div>' +
         '<div style="display:flex;align-items:center;">' +
-        '<span class="missed-tag">' + escapeHtml(reason) + '</span>' +
         '<button data-type="callback" data-target-type="' + escapeHtml(c.target_type) + '" data-action="done" data-id="' + escapeHtml(c.id) + '">Mark Called Back</button>' +
         '</div></div>';
     }).join("");
