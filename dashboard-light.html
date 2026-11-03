@@ -355,6 +355,30 @@ body {
 .previous-filter select { border: 1px solid #D5DCD4; border-radius: 7px; padding: 7px 9px; background: white; color: #425448; font: inherit; }
 @media (max-width: 1150px) { .list-labels, .patient-row { grid-template-columns: minmax(140px, 1.3fr) 75px 100px; } .list-labels span:last-child { display: none; } .patient-actions { grid-column: 1 / -1; } }
 @media (max-width: 650px) { .appointment-panel { padding: 12px; } .list-labels { display: none; } .patient-row { grid-template-columns: minmax(100px, 1fr) auto; gap: 10px; } .patient-actions { grid-column: 2; grid-row: 2; } }
+
+/* Match the existing blue clinic theme and explicit outcome colours. */
+.appointment-panel { border-color: var(--border); background: var(--card-bg); }
+.list-heading h2, .patient-title, .patient-time { color: var(--text-dark); }
+.list-heading p, .patient-doctor, .previous-filter { color: var(--text-muted); }
+.list-count { background: var(--blue-soft); color: #1D4ED8; }
+.list-labels { background: #F0F5FC; color: #526B87; }
+.patient-list { scrollbar-color: #A5BDDA #F1F5FA; }
+.patient-list:focus-visible { outline-color: var(--blue); }
+.patient-row { border-bottom-color: var(--border); border-left: 3px solid #B4CBE8; background: var(--card-bg); }
+.patient-row.state-arrived { background: #EFF6FF; border-left: 4px double #3B82F6; }
+.patient-row.state-completed { background: #F0FDF4; border-left: 3px solid #22A45A; }
+.patient-row.state-no_show { background: #F7F8FA; border-left: 3px dashed #9099A6; }
+.patient-row.state-cancelled { background: #FFF4F4; border-left: 3px dotted #DC5555; }
+.patient-status { background: #EAF2FE; color: #1D4ED8; }
+.state-arrived .patient-status { background: #DBEAFE; color: #1D4ED8; }
+.state-completed .patient-status { background: #DCFCE7; color: #166534; }
+.state-no_show .patient-status { background: #E9ECF0; color: #576271; }
+.state-cancelled .patient-status { background: #FEE2E2; color: #B91C1C; }
+.patient-time small { color: #2563EB; }
+.patient-source { color: var(--text-muted); }
+.patient-actions button { border-color: var(--border); color: #526B87; }
+.patient-actions button.main-action { background: var(--blue); border-color: var(--blue); color: #fff; }
+.previous-filter select { border-color: var(--border); color: var(--text-dark); }
 </style>
 <link rel="stylesheet" href="clinic-theme.css">
 </head>
