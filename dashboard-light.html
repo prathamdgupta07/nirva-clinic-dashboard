@@ -315,6 +315,46 @@ body {
 @media (max-width: 600px) { #callbackCardWrap .callback-row .info { width: 100%; } }
 
 #callbackCardWrap { background: transparent; border: 0; box-shadow: none; padding: 0; }
+
+/* Two quiet, compact work lists; patterns and labels convey status. */
+.appointment-panel { background: #fff; border: 1px solid #DDE2E0; border-radius: 14px; padding: 18px; margin-bottom: 24px; }
+.list-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 16px; }
+.list-heading h2 { margin: 0; color: #24352F; font-size: 16px; }
+.list-heading p { margin: 5px 0 0; font-size: 12px; color: #6A746F; }
+.list-count { font-size: 12px; background: #EEF1EE; color: #526158; border-radius: 20px; padding: 3px 9px; margin-left: 7px; }
+.list-labels, .patient-row { display: grid; grid-template-columns: minmax(150px, 1.5fr) minmax(70px, .65fr) minmax(100px, .8fr) minmax(235px, 1.65fr); gap: 14px; align-items: center; }
+.list-labels { padding: 9px 14px; background: #F4F5F2; color: #667068; font-size: 11px; font-weight: 600; border-radius: 7px; margin-bottom: 8px; }
+.patient-list { overflow-y: auto; overscroll-behavior-y: contain; scrollbar-gutter: stable; scrollbar-color: #A3AEA7 #F1F3F0; }
+.patient-list:focus-visible { outline: 2px solid #476653; outline-offset: 3px; }
+.patient-row { padding: 14px 12px; min-height: 78px; border-bottom: 1px solid #E7EBE6; border-left: 3px solid #B9C1B9; background: #fff; }
+.patient-row:last-child { border-bottom: 0; }
+.patient-row.state-arrived { background: #F1F5EF; border-left: 4px double #62775D; }
+.patient-row.state-completed { border-left-color: #687F64; }
+.patient-row.state-no_show { border-left: 3px dashed #9B8156; }
+.patient-row.state-cancelled { border-left: 3px dotted #969A98; background: #FAFAF8; }
+.patient-title { font-size: 13px; color: #27372F; font-weight: 650; overflow-wrap: anywhere; }
+.patient-doctor { font-size: 12px; color: #6A746F; margin-top: 4px; }
+.patient-time { font-size: 13px; color: #35443C; font-weight: 650; white-space: nowrap; }
+.patient-time small { display: block; margin-top: 4px; font-size: 10px; color: #6C785D; }
+.patient-status { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 650; border-radius: 5px; padding: 4px 7px; background: #F0F2EE; color: #4D5C50; white-space: nowrap; }
+.state-arrived .patient-status, .state-completed .patient-status { background: #E8EEE4; color: #435C42; }
+.state-no_show .patient-status { background: #F4EFE5; color: #78613E; }
+.state-cancelled .patient-status { color: #737875; background: #ECEEEC; }
+.status-pattern { width: 7px; height: 7px; border: 1px solid currentColor; border-radius: 50%; }
+.state-arrived .status-pattern { background: currentColor; }
+.state-completed .status-pattern { border-radius: 1px; background: currentColor; }
+.state-no_show .status-pattern { border-style: dashed; border-radius: 0; }
+.state-cancelled .status-pattern { height: 1px; border-radius: 0; }
+.patient-source { font-size: 10px; color: #7A827B; margin-top: 5px; }
+.patient-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+.patient-actions button { border: 1px solid #D5DCD4; background: #fff; border-radius: 6px; padding: 7px 9px; font: inherit; font-size: 11px; color: #526054; cursor: pointer; }
+.patient-actions button.main-action { background: #425A49; color: white; border-color: #425A49; }
+.patient-actions button:hover { filter: brightness(.95); }
+.patient-actions button:disabled { opacity: .5; cursor: wait; }
+.previous-filter { font-size: 12px; color: #687268; display: flex; align-items: center; gap: 8px; }
+.previous-filter select { border: 1px solid #D5DCD4; border-radius: 7px; padding: 7px 9px; background: white; color: #425448; font: inherit; }
+@media (max-width: 1150px) { .list-labels, .patient-row { grid-template-columns: minmax(140px, 1.3fr) 75px 100px; } .list-labels span:last-child { display: none; } .patient-actions { grid-column: 1 / -1; } }
+@media (max-width: 650px) { .appointment-panel { padding: 12px; } .list-labels { display: none; } .patient-row { grid-template-columns: minmax(100px, 1fr) auto; gap: 10px; } .patient-actions { grid-column: 2; grid-row: 2; } }
 </style>
 <link rel="stylesheet" href="clinic-theme.css">
 </head>
@@ -461,26 +501,18 @@ body {
         </div>
       </div>
 
-      <div class="board">
-        <div class="column confirmed">
-          <div class="column-title">Confirmed <span class="count" id="countConfirmed">0</span></div>
-          <div id="colConfirmed" class="appointment-list" role="region" aria-label="Confirmed appointments" tabindex="0"></div>
+      <section class="appointment-panel">
+        <div class="list-heading"><div><h2>Active Appointments <span id="activeCount" class="list-count">0</span></h2><p>Expected and arrived patients, ordered by appointment time</p></div></div>
+        <div class="list-labels"><span>Patient &amp; doctor</span><span>Time</span><span>Status</span><span>Actions</span></div>
+        <div id="activeAppointments" class="patient-list" role="region" aria-label="Active appointments" tabindex="0"></div>
+      </section>
+      <section class="appointment-panel">
+        <div class="list-heading"><div><h2>Previous Appointments <span id="previousCount" class="list-count">0</span></h2><p>Today's completed, no-show and cancelled appointments</p></div>
+          <label class="previous-filter">Show <select id="previousFilter" aria-label="Filter previous appointments"><option value="">All outcomes</option><option value="completed">Completed</option><option value="no_show">No-show</option><option value="cancelled">Cancelled</option></select></label>
         </div>
-        <div class="column arrived">
-          <div class="column-title">Arrived <span class="count" id="countArrived">0</span></div>
-          <div id="colArrived" class="appointment-list" role="region" aria-label="Arrived appointments" tabindex="0"></div>
-        </div>
-        <div class="column completed">
-          <div class="column-title">Completed <span class="count" id="countCompleted">0</span></div>
-          <div id="colCompleted" class="appointment-list" role="region" aria-label="Completed appointments" tabindex="0"></div>
-        </div>
-      </div>
-
-      <!-- No-show / Cancelled side rail -->
-      <div class="side-card" id="sideCardWrap" style="display:none;">
-        <h3>No-show / Cancelled Today</h3>
-        <div id="sideRailList" class="appointment-list" role="region" aria-label="No-show and cancelled appointments" tabindex="0"></div>
-      </div>
+        <div class="list-labels"><span>Patient &amp; doctor</span><span>Time</span><span>Status</span><span>Actions</span></div>
+        <div id="previousAppointments" class="patient-list" role="region" aria-label="Previous appointments" tabindex="0"></div>
+      </section>
 
     </div>
   </div>
@@ -661,37 +693,20 @@ body {
   function bookingCard(b, isNextUp) {
     var patientName = (b.patients && b.patients.name) || b.patient_name_snapshot || "Unknown patient";
     var doctorName = (b.doctors && b.doctors.name) || "Unknown doctor";
-    var actions = "";
-    if (b.status === "confirmed") {
-      actions =
-        '<div class="card-actions">' +
-        '<button class="primary" data-action="arrived" data-id="' + escapeHtml(b.id) + '">Mark Arrived</button>' +
-        '<button data-action="no_show" data-id="' + escapeHtml(b.id) + '">No-show</button>' +
-        '<button class="danger" data-action="cancelled" data-id="' + escapeHtml(b.id) + '">Cancel</button>' +
-        "</div>";
-    } else if (b.status === "arrived") {
-      actions =
-        '<div class="card-actions">' +
-        '<button class="primary" data-action="completed" data-id="' + escapeHtml(b.id) + '">Mark Completed</button>' +
-        '<button data-action="confirmed" data-id="' + escapeHtml(b.id) + '">Undo</button>' +
-        "</div>";
-    } else if (b.status === "completed") {
-      actions =
-        '<div class="card-actions">' +
-        '<button data-action="arrived" data-id="' + escapeHtml(b.id) + '">Undo</button>' +
-        "</div>";
+    var statusLabels = { confirmed: "Expected", arrived: "Arrived", completed: "Completed", no_show: "No-show", cancelled: "Cancelled" };
+    function actionButton(action, label, primary) {
+      return '<button' + (primary ? ' class="main-action"' : '') + ' data-action="' + action + '" data-id="' + escapeHtml(b.id) + '">' + label + '</button>';
     }
-    return (
-      '<div class="booking-card' + (isNextUp ? " next-up" : "") + '">' +
-      '<div class="row-top">' +
-      '<div><div class="patient-name">' + escapeHtml(patientName) + '</div><div class="doctor-name">' + escapeHtml(doctorName) + "</div></div>" +
-      '<div class="time">' + formatTime(b.appointment_time) + "</div>" +
-      "</div>" +
-      (isNextUp ? '<div class="next-up-tag">Next Up</div>' : "") +
-      sourceBadge(b.source) +
-      actions +
-      "</div>"
-    );
+    var actions = b.status === "confirmed"
+      ? actionButton("arrived", "Mark Arrived", true) + actionButton("no_show", "No-show") + actionButton("cancelled", "Cancel")
+      : b.status === "arrived"
+      ? actionButton("completed", "Complete", true) + actionButton("confirmed", "Undo arrival")
+      : actionButton(b.status === "completed" ? "arrived" : "confirmed", "Undo");
+    return '<article class="patient-row state-' + escapeHtml(b.status) + '">' +
+      '<div class="patient-details"><div class="patient-title">' + escapeHtml(patientName) + '</div><div class="patient-doctor">' + escapeHtml(doctorName) + '</div></div>' +
+      '<div class="patient-time">' + formatTime(b.appointment_time) + (isNextUp ? '<small>Next up</small>' : '') + '</div>' +
+      '<div><span class="patient-status"><span aria-hidden="true" class="status-pattern"></span>' + escapeHtml(statusLabels[b.status] || b.status) + '</span><div class="patient-source">' + (b.source === "ai_agent" ? "AI booking" : "Staff booking") + '</div></div>' +
+      '<div class="patient-actions">' + actions + '</div></article>';
   }
 
   // ---------- Load + render board ----------
@@ -702,6 +717,7 @@ body {
   var doctorFilterId = "";
   var statusFilter = "";
   var sourceFilter = "";
+  var previousFilter = "";
 
   function renderDoctorCoverage() {
     var target = document.getElementById("doctorCoverage");
@@ -770,14 +786,14 @@ body {
   }
 
   function sizeAppointmentLists() {
-    ["colConfirmed", "colArrived", "colCompleted", "sideRailList"].forEach(function (id) {
+    ["activeAppointments", "previousAppointments"].forEach(function (id) {
       var list = document.getElementById(id);
       if (!list) return;
       var rows = Array.from(list.children);
       list.style.maxHeight = "none";
-      if (rows.length > 3) {
+      if (rows.length > 6) {
         var top = rows[0].getBoundingClientRect().top;
-        var bottom = rows[2].getBoundingClientRect().bottom;
+        var bottom = rows[5].getBoundingClientRect().bottom;
         list.style.maxHeight = Math.ceil(bottom - top) + "px";
       }
     });
@@ -809,33 +825,17 @@ body {
       nextUpId = upcomingConfirmed[0].id; // already sorted ascending by the query
     }
 
-    document.getElementById("countConfirmed").textContent = confirmed.length;
-    document.getElementById("countArrived").textContent = arrived.length;
-    document.getElementById("countCompleted").textContent = completed.length;
-
-    document.getElementById("colConfirmed").innerHTML = confirmed.length
-      ? confirmed.map(function (b) { return bookingCard(b, b.id === nextUpId); }).join("")
-      : '<div class="empty-column">No confirmed bookings.</div>';
-    document.getElementById("colArrived").innerHTML = arrived.length
-      ? arrived.map(function (b) { return bookingCard(b, false); }).join("")
-      : '<div class="empty-column">No one has arrived yet.</div>';
-    document.getElementById("colCompleted").innerHTML = completed.length
-      ? completed.map(function (b) { return bookingCard(b, false); }).join("")
-      : '<div class="empty-column">No completed visits yet.</div>';
-    var sideWrap = document.getElementById("sideCardWrap");
-    if (sideRail.length > 0) {
-      sideWrap.style.display = "block";
-      document.getElementById("sideRailList").innerHTML = sideRail.map(function (b) {
-        var patientName = (b.patients && b.patients.name) || b.patient_name_snapshot || "Unknown patient";
-        return '<div class="side-row"><span class="name">' + escapeHtml(patientName) + " — " + formatTime(b.appointment_time) + '</span>' +
-          '<span style="display:flex;align-items:center;gap:8px;">' +
-          '<span class="tag ' + b.status + '">' + (b.status === "no_show" ? "No-show" : "Cancelled") + "</span>" +
-          '<button data-action="confirmed" data-id="' + escapeHtml(b.id) + '" style="font-family:inherit;font-size:11px;font-weight:600;padding:5px 10px;border-radius:7px;border:1px solid var(--border);background-color:white;color:var(--text-dark);cursor:pointer;">Undo</button>' +
-          "</span></div>";
-      }).join("");
-    } else {
-      sideWrap.style.display = "none";
-    }
+    var active = visibleBookings.filter(function (b) { return b.status === "confirmed" || b.status === "arrived"; });
+    var previous = visibleBookings.filter(function (b) { return ["completed", "no_show", "cancelled"].indexOf(b.status) !== -1; });
+    var previousVisible = previous.filter(function (b) { return !previousFilter || b.status === previousFilter; });
+    document.getElementById("activeCount").textContent = active.length;
+    document.getElementById("previousCount").textContent = previousFilter ? previousVisible.length + " / " + previous.length : previous.length;
+    document.getElementById("activeAppointments").innerHTML = active.length
+      ? active.map(function (b) { return bookingCard(b, b.id === nextUpId); }).join("")
+      : '<div class="empty-column">No active appointments match these filters.</div>';
+    document.getElementById("previousAppointments").innerHTML = previousVisible.length
+      ? previousVisible.map(function (b) { return bookingCard(b, false); }).join("")
+      : '<div class="empty-column">No previous appointments match these filters.</div>';
 
     document.getElementById("statTotal").textContent = currentBookings.length;
     document.getElementById("statConfirmed").textContent = confirmed.length;
@@ -860,6 +860,11 @@ body {
   });
   document.getElementById("sourceFilter").addEventListener("change", function (event) {
     sourceFilter = event.target.value;
+    renderBoard();
+  });
+
+  document.getElementById("previousFilter").addEventListener("change", function (event) {
+    previousFilter = event.target.value;
     renderBoard();
   });
 
@@ -915,7 +920,7 @@ body {
     // the active board), so it gets a confirmation step. Other actions
     // (Arrived/Completed/No-show/Undo) are all instantly reversible via the
     // Undo button, so they don't need one.
-    if (action === "cancelled" && !(await confirmDialog("Cancel this booking? You can undo this afterward from the No-show/Cancelled list."))) {
+    if (action === "cancelled" && !(await confirmDialog("Cancel this booking? You can undo this afterward from Previous Appointments."))) {
       btn.disabled = false;
       return;
     }
