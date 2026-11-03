@@ -738,9 +738,6 @@ body {
     }
 
     currentBookings = data || [];
-    if (!hasInitialActivity) {
-      hasInitialActivity = true;
-    }
     renderBoard();
   }
 
@@ -857,8 +854,8 @@ body {
 
     if (btn.getAttribute("data-type") === "callback") {
       try {
-        await invokeProtectedStaffAction("staff-complete-callback", "call:" + id, {
-          target_type: "call", target_id: id
+        await invokeProtectedStaffAction("staff-complete-callback", (btn.getAttribute("data-target-type") || "call") + ":" + id, {
+          target_type: btn.getAttribute("data-target-type") || "call", target_id: id
         }, "callback");
       } catch (err) {
         alert(err.message || "Could not update callback. Please try again.");
@@ -903,14 +900,26 @@ body {
 
   async function loadCallbackList() {
     var wrap = document.getElementById("callbackCardWrap");
-    var { data, error } = await supabaseClient
+    var callResult = await supabaseClient
       .from("calls")
       .select("id, phone_number, caller_name, outcome, created_at, patients(name)")
       .in("outcome", ["missed", "callback_requested"])
       .eq("callback_done", false)
       .order("created_at", { ascending: false });
+    var requestResult = await supabaseClient.from("callback_requests")
+      .select("id, caller_name, phone_number, reason, created_at")
+      .eq("status", "pending").order("created_at", { ascending: false });
+    var data = (callResult.data || []).map(function (row) {
+      return Object.assign({}, row, { target_type: "call" });
+    }).concat((requestResult.data || []).map(function (row) {
+      return Object.assign({}, row, { target_type: "callback_request" });
+    })).sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+    if (callResult.error || requestResult.error) {
+      document.getElementById("notificationText").textContent = "Could not load all callback requests. Open Callback Requests or refresh.";
+      return;
+    }
 
-    if (error || !data || data.length === 0) {
+    if (data.length === 0) {
       currentCallbacks = [];
       renderCallbackNotification();
       wrap.style.display = "none";
@@ -923,12 +932,12 @@ body {
     document.getElementById("callbackList").innerHTML = data.map(function (c) {
       var who = (c.patients ? c.patients.name : null) || c.caller_name || "Unknown caller";
       var showPhoneSeparately = c.phone_number && who !== c.phone_number;
-      var reason = callbackReasonLabel(c.outcome);
+      var reason = c.target_type === "callback_request" ? (c.reason || "Callback requested") : callbackReasonLabel(c.outcome);
       return '<div class="callback-row">' +
         '<div class="info"><div class="phone">' + escapeHtml(who) + (showPhoneSeparately ? " — " + escapeHtml(c.phone_number) : "") + '</div><div class="meta">' + escapeHtml(reason) + " · " + formatCallTime(c.created_at) + '</div></div>' +
         '<div style="display:flex;align-items:center;">' +
-        '<span class="missed-tag">' + reason + '</span>' +
-        '<button data-type="callback" data-action="done" data-id="' + escapeHtml(c.id) + '">Mark Called Back</button>' +
+        '<span class="missed-tag">' + escapeHtml(reason) + '</span>' +
+        '<button data-type="callback" data-target-type="' + escapeHtml(c.target_type) + '" data-action="done" data-id="' + escapeHtml(c.id) + '">Mark Called Back</button>' +
         '</div></div>';
     }).join("");
   }
@@ -1120,6 +1129,9 @@ body {
 
   // ---------- Realtime: missed-call alerts ----------
   function subscribeToMissedCalls() {
+    supabaseClient.channel("callback-requests-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "callback_requests" }, function () { loadCallbackList(); })
+      .subscribe();
     supabaseClient
       .channel("calls-live")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "calls" }, function (payload) {
