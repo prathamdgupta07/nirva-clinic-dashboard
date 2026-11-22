@@ -378,12 +378,15 @@ body {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
 <script src="config.js?v=20261122"></script>
 <script>
-  // ---------- Session guard ----------
-  // If the user already has a valid session, skip the login form entirely.
-  (async function checkExistingSession() {
+  // ---------- Always start signed out ----------
+  // Opening the dashboard link (or this page) must always ask for a login,
+  // even if this tab still holds a session. End any existing session here
+  // instead of skipping the form.
+  var existingSessionEnded = (async function endExistingSession() {
     var { data } = await supabaseClient.auth.getSession();
     if (data && data.session) {
-      window.location.href = "dashboard-light.html";
+      await recordLogout();
+      await supabaseClient.auth.signOut({ scope: "local" });
     }
   })();
 
@@ -414,6 +417,7 @@ body {
     clearError();
     loginBtn.classList.add("loading");
 
+    await existingSessionEnded;
     var email = emailInput.value.trim();
     var password = passwordInput.value;
 
