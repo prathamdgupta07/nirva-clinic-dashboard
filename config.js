@@ -13,7 +13,14 @@ if (window.location.hostname === "127.0.0.1") {
 // what it can actually read/write.
 var SUPABASE_URL = "https://ukfpiqtqxtywfuvakfgz.supabase.co";
 var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrZnBpcXRxeHR5d2Z1dmFrZmd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDUwMzAsImV4cCI6MjEwMzY4MTAzMH0.efoeHPko3LTjAjUrTfZaBVHrgGnyDN2bUnRrD4a0JXA";
-var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Keep the login in sessionStorage, not localStorage, so it ends when the tab
+// or browser is closed (including Cmd+Q). Opening the dashboard link again
+// always starts at the login page. Each new tab also needs its own login.
+// Remove any older login saved in localStorage so it cannot be reused.
+try { localStorage.removeItem("sb-ukfpiqtqxtywfuvakfgz-auth-token"); } catch (e) {}
+var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { storage: window.sessionStorage, persistSession: true }
+});
 
 // ---------- Login/logout history tracking (shared by every page) ----------
 // One row per session: login_time is set on insert, logout_time is filled in
