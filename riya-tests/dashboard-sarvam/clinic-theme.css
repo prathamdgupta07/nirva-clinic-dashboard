@@ -1,0 +1,83 @@
+/* Nirva clinic theme: calm clarity for staff-facing healthcare work.
+   Medical blue provides confidence, aqua softens the interface, and warm
+   amber/coral are reserved for attention and risk so they retain meaning. */
+:root {
+  --bg: #f5f8fc;
+  --sidebar-bg: #ffffff;
+  --card-bg: #ffffff;
+  --border: #e0e8f0;
+  --text-dark: #18324b;
+  --text-muted: #6c8194;
+  --active-bg: #e4f4f7;
+  --active-text: #117f90;
+  --blue: #1976d2;
+  --blue-soft: #e7f1fe;
+  --green: #208a6c;
+  --green-soft: #e5f6f0;
+  --red: #d05e62;
+  --red-soft: #fcede9;
+  --purple: #46708f;
+  --purple-soft: #eaf1f7;
+  --amber: #c98b28;
+  --amber-soft: #fff4df;
+}
+
+body {
+  background:
+    radial-gradient(circle at 96% -4%, rgba(131, 204, 226, .22), transparent 27rem),
+    var(--bg);
+}
+
+.sidebar {
+  border-right-color: #e0e8f0;
+  box-shadow: 10px 0 32px rgba(24, 50, 75, .035);
+}
+
+.sidebar .brand .logo,
+.topbar .user .avatar,
+.status-row .avatar-lg {
+  background: linear-gradient(135deg, #1976d2, #117f90) !important;
+  box-shadow: 0 8px 18px rgba(25, 118, 210, .18);
+}
+
+.sidebar nav a { border-radius: 10px; }
+.sidebar nav a:hover { background-color: #edf6fb; }
+.sidebar nav a.active { box-shadow: inset 3px 0 0 var(--blue); }
+
+.topbar {
+  background: rgba(255, 255, 255, .92);
+  backdrop-filter: blur(14px);
+  border-bottom-color: #e0e8f0;
+}
+
+.card, .stat-card, .column, .side-card {
+  border-color: #e0e8f0;
+  box-shadow: 0 8px 24px rgba(24, 50, 75, .045);
+}
+
+.stat-card { border-radius: 18px; }
+.stat-card:hover, .card:hover { box-shadow: 0 12px 28px rgba(24, 50, 75, .075); }
+
+.btn-primary, .card-actions button.primary, .btn-submit {
+  background: linear-gradient(135deg, #1976d2, #1565b7) !important;
+  border-color: #1976d2 !important;
+  box-shadow: 0 7px 14px rgba(25, 118, 210, .18);
+}
+.btn-primary:hover, .card-actions button.primary:hover, .btn-submit:hover { filter: brightness(.94); }
+
+.booking-card { background-color: #fcfdff; border-color: #e0e8f0; }
+.booking-card.next-up { border-color: #1976d2; background-color: #eef6ff; box-shadow: 0 0 0 1px #1976d2; }
+.source-badge.ai_agent { background-color: #eaf1f7; color: #46708f; }
+.source-badge.staff { background-color: #e4f4f7; color: #117f90; }
+
+.panel { background: linear-gradient(145deg, #174f86 0%, #1976d2 52%, #117f90 100%) !important; }
+.login-card, .modal { border: 1px solid #e0e8f0; box-shadow: 0 24px 60px rgba(24, 50, 75, .14); }
+
+input:focus, select:focus, textarea:focus {
+  outline: 3px solid rgba(25, 118, 210, .16) !important;
+  border-color: #1976d2 !important;
+}
+
+@media (max-width: 720px) {
+  .sidebar { box-shadow: none; }
+}

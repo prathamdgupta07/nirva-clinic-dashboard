@@ -1,0 +1,8 @@
+# Local configuration and operating-system files
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Deployment tooling metadata
+.vercel
