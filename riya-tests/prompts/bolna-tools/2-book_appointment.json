@@ -1,0 +1,53 @@
+{
+  "name": "book_appointment",
+  "description": "Save a new appointment. Call only after the caller clearly confirmed name, doctor, date, time and phone.",
+  "pre_call_message": "Let me book that for you.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "doctor_name": {
+        "type": "string",
+        "description": "Doctor's full name exactly as listed, e.g. 'Dr. Ananya Sharma'"
+      },
+      "patient_name": {
+        "type": "string",
+        "description": "Patient's full name"
+      },
+      "phone_number": {
+        "type": "string",
+        "description": "Caller-confirmed phone number in + country code format, e.g. +919876543210"
+      },
+      "appointment_datetime": {
+        "type": "string",
+        "description": "YYYY-MM-DD HH:mm, 24-hour, India time"
+      },
+      "platform_call_id": {
+        "type": "string",
+        "description": "This call's ID from the prompt (execution_id)"
+      }
+    },
+    "required": [
+      "doctor_name",
+      "patient_name",
+      "phone_number",
+      "appointment_datetime"
+    ]
+  },
+  "key": "custom_task",
+  "value": {
+    "method": "POST",
+    "url": "https://esvurkdwzcxtzimbpkwv.supabase.co/functions/v1/book-appointment",
+    "param": {
+      "doctor_name": "%(doctor_name)s",
+      "patient_name": "%(patient_name)s",
+      "phone_number": "%(phone_number)s",
+      "appointment_datetime": "%(appointment_datetime)s",
+      "platform_call_id": "%(platform_call_id)s"
+    },
+    "api_token": null,
+    "headers": {
+      "Content-Type": "application/json",
+      "x-webhook-secret": "PASTE_BOLNA_SECRET_HERE"
+    }
+  }
+}

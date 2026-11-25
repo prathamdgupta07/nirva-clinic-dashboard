@@ -41,7 +41,7 @@
       "api_token": null,
       "headers": {
         "Content-Type": "application/json",
-        "x-webhook-secret": "PASTE_SECRET_FROM_~/.riya-test-secrets/bolna.env"
+        "x-webhook-secret": "PASTE_BOLNA_SECRET_HERE"
       }
     }
   },
@@ -94,7 +94,7 @@
       "api_token": null,
       "headers": {
         "Content-Type": "application/json",
-        "x-webhook-secret": "PASTE_SECRET_FROM_~/.riya-test-secrets/bolna.env"
+        "x-webhook-secret": "PASTE_BOLNA_SECRET_HERE"
       }
     }
   },
@@ -136,7 +136,7 @@
       "api_token": null,
       "headers": {
         "Content-Type": "application/json",
-        "x-webhook-secret": "PASTE_SECRET_FROM_~/.riya-test-secrets/bolna.env"
+        "x-webhook-secret": "PASTE_BOLNA_SECRET_HERE"
       }
     }
   },
@@ -195,7 +195,7 @@
       "api_token": null,
       "headers": {
         "Content-Type": "application/json",
-        "x-webhook-secret": "PASTE_SECRET_FROM_~/.riya-test-secrets/bolna.env"
+        "x-webhook-secret": "PASTE_BOLNA_SECRET_HERE"
       }
     }
   },
@@ -248,7 +248,7 @@
       "api_token": null,
       "headers": {
         "Content-Type": "application/json",
-        "x-webhook-secret": "PASTE_SECRET_FROM_~/.riya-test-secrets/bolna.env"
+        "x-webhook-secret": "PASTE_BOLNA_SECRET_HERE"
       }
     }
   },
@@ -295,7 +295,7 @@
       "api_token": null,
       "headers": {
         "Content-Type": "application/json",
-        "x-webhook-secret": "PASTE_SECRET_FROM_~/.riya-test-secrets/bolna.env"
+        "x-webhook-secret": "PASTE_BOLNA_SECRET_HERE"
       }
     }
   },
@@ -325,7 +325,7 @@
       "api_token": null,
       "headers": {
         "Content-Type": "application/json",
-        "x-webhook-secret": "PASTE_SECRET_FROM_~/.riya-test-secrets/bolna.env"
+        "x-webhook-secret": "PASTE_BOLNA_SECRET_HERE"
       }
     }
   }
