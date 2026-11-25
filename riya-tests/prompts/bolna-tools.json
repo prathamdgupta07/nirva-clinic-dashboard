@@ -1,0 +1,332 @@
+[
+  {
+    "name": "check_availability",
+    "description": "Check live free 15-minute slots for one doctor. Use before ever saying a slot is free. search_mode 'exact' for a given date, 'next' for earliest from today onward.",
+    "pre_call_message": "One moment, let me check.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "doctor_name": {
+          "type": "string",
+          "description": "Doctor's full name exactly as listed, e.g. 'Dr. Ananya Sharma'"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date as YYYY-MM-DD. Required when search_mode is exact."
+        },
+        "time": {
+          "type": "string",
+          "description": "Optional wanted time as HH:mm, 24-hour"
+        },
+        "search_mode": {
+          "type": "string",
+          "description": "'exact' or 'next'"
+        }
+      },
+      "required": [
+        "doctor_name",
+        "search_mode"
+      ]
+    },
+    "key": "custom_task",
+    "value": {
+      "method": "POST",
+      "url": "https://esvurkdwzcxtzimbpkwv.supabase.co/functions/v1/check-availability",
+      "param": {
+        "doctor_name": "%(doctor_name)s",
+        "date": "%(date)s",
+        "time": "%(time)s",
+        "search_mode": "%(search_mode)s"
+      },
+      "api_token": null,
+      "headers": {
+        "Content-Type": "application/json",
+        "x-webhook-secret": "PASTE_SECRET_FROM_~/.riya-test-secrets/bolna.env"
+      }
+    }
+  },
+  {
+    "name": "book_appointment",
+    "description": "Save a new appointment. Call only after the caller clearly confirmed name, doctor, date, time and phone.",
+    "pre_call_message": "Let me book that for you.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "doctor_name": {
+          "type": "string",
+          "description": "Doctor's full name exactly as listed, e.g. 'Dr. Ananya Sharma'"
+        },
+        "patient_name": {
+          "type": "string",
+          "description": "Patient's full name"
+        },
+        "phone_number": {
+          "type": "string",
+          "description": "Caller-confirmed phone number in + country code format, e.g. +919876543210"
+        },
+        "appointment_datetime": {
+          "type": "string",
+          "description": "YYYY-MM-DD HH:mm, 24-hour, India time"
+        },
+        "platform_call_id": {
+          "type": "string",
+          "description": "This call's ID from the prompt (execution_id)"
+        }
+      },
+      "required": [
+        "doctor_name",
+        "patient_name",
+        "phone_number",
+        "appointment_datetime"
+      ]
+    },
+    "key": "custom_task",
+    "value": {
+      "method": "POST",
+      "url": "https://esvurkdwzcxtzimbpkwv.supabase.co/functions/v1/book-appointment",
+      "param": {
+        "doctor_name": "%(doctor_name)s",
+        "patient_name": "%(patient_name)s",
+        "phone_number": "%(phone_number)s",
+        "appointment_datetime": "%(appointment_datetime)s",
+        "platform_call_id": "%(platform_call_id)s"
+      },
+      "api_token": null,
+      "headers": {
+        "Content-Type": "application/json",
+        "x-webhook-secret": "PASTE_SECRET_FROM_~/.riya-test-secrets/bolna.env"
+      }
+    }
+  },
+  {
+    "name": "find_appointment_for_reschedule",
+    "description": "Look up the caller's existing confirmed appointment before rescheduling or cancelling. Returns the recorded patient name.",
+    "pre_call_message": "Let me find your appointment.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "doctor_name": {
+          "type": "string",
+          "description": "Doctor's full name exactly as listed, e.g. 'Dr. Ananya Sharma'"
+        },
+        "phone_number": {
+          "type": "string",
+          "description": "Caller-confirmed phone number in + country code format, e.g. +919876543210"
+        },
+        "existing_appointment_datetime": {
+          "type": "string",
+          "description": "Current appointment, YYYY-MM-DD HH:mm, 24-hour"
+        }
+      },
+      "required": [
+        "doctor_name",
+        "phone_number",
+        "existing_appointment_datetime"
+      ]
+    },
+    "key": "custom_task",
+    "value": {
+      "method": "POST",
+      "url": "https://esvurkdwzcxtzimbpkwv.supabase.co/functions/v1/find-appointment-for-reschedule",
+      "param": {
+        "doctor_name": "%(doctor_name)s",
+        "phone_number": "%(phone_number)s",
+        "existing_appointment_datetime": "%(existing_appointment_datetime)s"
+      },
+      "api_token": null,
+      "headers": {
+        "Content-Type": "application/json",
+        "x-webhook-secret": "PASTE_SECRET_FROM_~/.riya-test-secrets/bolna.env"
+      }
+    }
+  },
+  {
+    "name": "reschedule_appointment",
+    "description": "Move a confirmed appointment to a new checked slot, after identity and the change are clearly confirmed.",
+    "pre_call_message": "Let me update that.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "doctor_name": {
+          "type": "string",
+          "description": "Doctor's full name exactly as listed, e.g. 'Dr. Ananya Sharma'"
+        },
+        "patient_name": {
+          "type": "string",
+          "description": "Recorded patient name from the lookup"
+        },
+        "phone_number": {
+          "type": "string",
+          "description": "Caller-confirmed phone number in + country code format, e.g. +919876543210"
+        },
+        "existing_appointment_datetime": {
+          "type": "string",
+          "description": "Old slot, YYYY-MM-DD HH:mm"
+        },
+        "appointment_datetime": {
+          "type": "string",
+          "description": "New slot, YYYY-MM-DD HH:mm"
+        },
+        "platform_call_id": {
+          "type": "string",
+          "description": "This call's ID from the prompt (execution_id)"
+        }
+      },
+      "required": [
+        "doctor_name",
+        "patient_name",
+        "phone_number",
+        "existing_appointment_datetime",
+        "appointment_datetime"
+      ]
+    },
+    "key": "custom_task",
+    "value": {
+      "method": "POST",
+      "url": "https://esvurkdwzcxtzimbpkwv.supabase.co/functions/v1/reschedule-appointment",
+      "param": {
+        "doctor_name": "%(doctor_name)s",
+        "patient_name": "%(patient_name)s",
+        "phone_number": "%(phone_number)s",
+        "existing_appointment_datetime": "%(existing_appointment_datetime)s",
+        "appointment_datetime": "%(appointment_datetime)s",
+        "platform_call_id": "%(platform_call_id)s"
+      },
+      "api_token": null,
+      "headers": {
+        "Content-Type": "application/json",
+        "x-webhook-secret": "PASTE_SECRET_FROM_~/.riya-test-secrets/bolna.env"
+      }
+    }
+  },
+  {
+    "name": "cancel_appointment",
+    "description": "Cancel a confirmed appointment, only after identity is confirmed and the caller clearly said yes to cancelling.",
+    "pre_call_message": "Let me cancel that.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "doctor_name": {
+          "type": "string",
+          "description": "Doctor's full name exactly as listed, e.g. 'Dr. Ananya Sharma'"
+        },
+        "patient_name": {
+          "type": "string",
+          "description": "Recorded patient name from the lookup"
+        },
+        "phone_number": {
+          "type": "string",
+          "description": "Caller-confirmed phone number in + country code format, e.g. +919876543210"
+        },
+        "existing_appointment_datetime": {
+          "type": "string",
+          "description": "Slot to cancel, YYYY-MM-DD HH:mm"
+        },
+        "platform_call_id": {
+          "type": "string",
+          "description": "This call's ID from the prompt (execution_id)"
+        }
+      },
+      "required": [
+        "doctor_name",
+        "patient_name",
+        "phone_number",
+        "existing_appointment_datetime"
+      ]
+    },
+    "key": "custom_task",
+    "value": {
+      "method": "POST",
+      "url": "https://esvurkdwzcxtzimbpkwv.supabase.co/functions/v1/cancel-appointment",
+      "param": {
+        "doctor_name": "%(doctor_name)s",
+        "patient_name": "%(patient_name)s",
+        "phone_number": "%(phone_number)s",
+        "existing_appointment_datetime": "%(existing_appointment_datetime)s",
+        "platform_call_id": "%(platform_call_id)s"
+      },
+      "api_token": null,
+      "headers": {
+        "Content-Type": "application/json",
+        "x-webhook-secret": "PASTE_SECRET_FROM_~/.riya-test-secrets/bolna.env"
+      }
+    }
+  },
+  {
+    "name": "save_callback_request",
+    "description": "Save a request for clinic staff to call the caller back, with their consent.",
+    "pre_call_message": "Let me note that for the staff.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "caller_name": {
+          "type": "string",
+          "description": "Caller's name"
+        },
+        "phone_number": {
+          "type": "string",
+          "description": "Best number to call back"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Short reason"
+        },
+        "doctor_name": {
+          "type": "string",
+          "description": "Optional doctor name"
+        }
+      },
+      "required": [
+        "caller_name",
+        "phone_number",
+        "reason"
+      ]
+    },
+    "key": "custom_task",
+    "value": {
+      "method": "POST",
+      "url": "https://esvurkdwzcxtzimbpkwv.supabase.co/functions/v1/save-callback-request",
+      "param": {
+        "caller_name": "%(caller_name)s",
+        "phone_number": "%(phone_number)s",
+        "reason": "%(reason)s",
+        "doctor_name": "%(doctor_name)s"
+      },
+      "api_token": null,
+      "headers": {
+        "Content-Type": "application/json",
+        "x-webhook-secret": "PASTE_SECRET_FROM_~/.riya-test-secrets/bolna.env"
+      }
+    }
+  },
+  {
+    "name": "get_doctor_hours",
+    "description": "Get a doctor's working days and hours.",
+    "pre_call_message": "One moment.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "doctor_name": {
+          "type": "string",
+          "description": "Doctor's full name exactly as listed, e.g. 'Dr. Ananya Sharma'"
+        }
+      },
+      "required": [
+        "doctor_name"
+      ]
+    },
+    "key": "custom_task",
+    "value": {
+      "method": "POST",
+      "url": "https://esvurkdwzcxtzimbpkwv.supabase.co/functions/v1/get-doctor-hours",
+      "param": {
+        "doctor_name": "%(doctor_name)s"
+      },
+      "api_token": null,
+      "headers": {
+        "Content-Type": "application/json",
+        "x-webhook-secret": "PASTE_SECRET_FROM_~/.riya-test-secrets/bolna.env"
+      }
+    }
+  }
+]
