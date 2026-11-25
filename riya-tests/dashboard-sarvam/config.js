@@ -12,7 +12,7 @@ if (window.location.hostname === "127.0.0.1") {
 // Publishable/anon key — safe to expose in client-side code, RLS controls
 // what it can actually read/write.
 var SUPABASE_URL = "https://wsqwgomduqehbtdiawcw.supabase.co";
-var SUPABASE_ANON_KEY = "SARVAM_ANON_KEY_PLACEHOLDER";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzcXdnb21kdXFlaGJ0ZGlhd2N3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU0NDQ2OTEsImV4cCI6MjExMTAyMDY5MX0.Ql8l6OAlCk0Ng3rHzWcqxc4w1cPj7YVa5S943c4ac7s";
 // Keep the login in sessionStorage, not localStorage, so it ends when the tab
 // or browser is closed (including Cmd+Q). Opening the dashboard link again
 // always starts at the login page. Each new tab also needs its own login.

@@ -37,7 +37,7 @@ if [ ! -f "$SECRETS_FILE" ]; then
 fi
 
 cd "$WORK"
-npx --yes supabase@latest functions deploy --project-ref "$REF" --use-api
-npx --yes supabase@latest secrets set --project-ref "$REF" --env-file "$SECRETS_FILE"
+npx --yes supabase@latest functions deploy --project-ref "$REF" --use-api --yes
+npx --yes supabase@latest secrets set --yes --project-ref "$REF" --env-file "$SECRETS_FILE"
 npx --yes supabase@latest functions list --project-ref "$REF"
 echo "Done: $PLATFORM ($REF). Tool secret is in $SECRETS_FILE"
