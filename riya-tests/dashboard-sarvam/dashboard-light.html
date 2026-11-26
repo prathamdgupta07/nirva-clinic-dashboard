@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://wsqwgomduqehbtdiawcw.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <title>Nirva — Staff Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
 <style>
@@ -414,10 +416,6 @@ body {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 2 16 8 22 8"/><line x1="22" y1="2" x2="16" y2="8"/><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg>
         Callback Requests
       </a>
-      <a href="calls.html">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg>
-        Call Analytics
-      </a>
       <a href="patients.html">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Patients
@@ -478,7 +476,6 @@ body {
         </div>
         <div class="right-actions">
           <div class="date-chip" id="dateChip">Today</div>
-          <a href="calls.html?mode=demo" style="font-size:13px;font-weight:600;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--active-text);text-decoration:none;">View 100-call demo</a>
           <button class="btn-primary" id="addBookingBtn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
             Add Booking
@@ -607,6 +604,7 @@ body {
 </div>
 
 <script src="config.js?v=20261001"></script>
+<script src="shared-ui.js?v=20261127"></script>
 <script>
   // ---------- Session guard ----------
   async function requireSession() {
@@ -1072,22 +1070,23 @@ body {
 
   async function loadCallbackList() {
     var wrap = document.getElementById("callbackCardWrap");
-    var callResult = await supabaseClient
+    var both = await Promise.all([supabaseClient
       .from("calls")
       .select("id, phone_number, caller_name, outcome, created_at, patients(name)")
       .in("outcome", ["missed", "callback_requested"])
       .eq("callback_done", false)
-      .order("created_at", { ascending: false });
-    var requestResult = await supabaseClient.from("callback_requests")
+      .order("created_at", { ascending: false }),
+      supabaseClient.from("callback_requests")
       .select("id, caller_name, phone_number, reason, created_at")
-      .eq("status", "pending").order("created_at", { ascending: false });
+      .eq("status", "pending").order("created_at", { ascending: false })]);
+    var callResult = both[0], requestResult = both[1];
+    if (window.NirvaTopbar) window.NirvaTopbar.refreshBell();
     var data = (callResult.data || []).map(function (row) {
       return Object.assign({}, row, { target_type: "call" });
     }).concat((requestResult.data || []).map(function (row) {
       return Object.assign({}, row, { target_type: "callback_request" });
     })).sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
     if (callResult.error || requestResult.error) {
-      document.getElementById("notificationText").textContent = "Could not load all callback requests. Open Callback Requests or refresh.";
       return;
     }
 
@@ -1373,17 +1372,19 @@ body {
     if (!session) return;
     document.querySelector(".app").style.visibility = "visible";
 
-    var userRole = await loadIdentityAndGreeting(session);
-    if (userRole === "doctor") {
-      var addBtn = document.getElementById("addBookingBtn");
-      if (addBtn) addBtn.style.display = "none";
-    }
+    // Start every data load at once instead of waiting for the profile first.
     loadDoctorsIntoSelect();
     loadBoard();
     loadUpcoming();
     loadCallbackList();
     loadOperationalUpdates();
     subscribeToNewBookings();
+    loadIdentityAndGreeting(session).then(function (userRole) {
+      if (userRole === "doctor") {
+        var addBtn = document.getElementById("addBookingBtn");
+        if (addBtn) addBtn.style.display = "none";
+      }
+    });
     // Safety net if a live update is missed: refresh every minute.
     setInterval(function () { refreshBookings(); loadCallbackList(); }, 60000);
     subscribeToMissedCalls();

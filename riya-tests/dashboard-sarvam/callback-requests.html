@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://wsqwgomduqehbtdiawcw.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <title>Nirva — Callback Requests</title>
 <style>
 :root {
@@ -69,6 +71,11 @@ tbody tr:last-child td { border-bottom: none; }
 .btn-submit:disabled { opacity: 0.6; cursor: default; }
 .form-error { font-size: 12.5px; color: #B91C1C; margin-top: 10px; display: none; }
 .form-error.show { display: block; }
+.list-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+.list-tools input, .list-tools select { border: 1px solid var(--border); border-radius: 9px; padding: 9px 11px; font: inherit; font-size: 13px; background: #fff; color: var(--text-dark); }
+.list-tools input[type=search] { flex: 1; min-width: 220px; }
+.list-tools label { font-size: 12.5px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+.list-tools .clear { border: 0; background: none; color: var(--blue); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
 </style>
 <link rel="stylesheet" href="clinic-theme.css">
 </head>
@@ -89,10 +96,6 @@ tbody tr:last-child td { border-bottom: none; }
       <a href="callback-requests.html" class="active">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 2 16 8 22 8"/><line x1="22" y1="2" x2="16" y2="8"/><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg>
         Callback Requests
-      </a>
-      <a href="calls.html">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg>
-        Calls
       </a>
       <a href="patients.html">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -162,6 +165,13 @@ tbody tr:last-child td { border-bottom: none; }
           <h2>All Callback Requests</h2>
           <span class="subtitle" id="requestCount">Loading...</span>
         </div>
+        <div class="list-tools">
+          <input type="search" id="cbSearch" autocomplete="off" placeholder="Search caller name, phone or reason" aria-label="Search callback requests">
+          <select id="cbDoctor" aria-label="Filter by doctor"><option value="">All doctors</option><option value="__none">No specific doctor</option></select>
+          <label>Requested on <input type="date" id="cbDate" aria-label="Filter by requested date"></label>
+          <select id="cbStatus" aria-label="Filter by status"><option value="">All statuses</option><option value="pending">Pending</option><option value="contacted">Contacted</option></select>
+          <button type="button" class="clear" id="cbClear">Clear</button>
+        </div>
         <table id="requestsTable" style="display:none;">
           <thead>
             <tr><th>Caller</th><th>Doctor</th><th>Phone</th><th>Reason</th><th>Requested</th><th>Status</th><th>Contacted by</th><th></th></tr>
@@ -178,6 +188,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
 <script src="config.js?v=20261122"></script>
+<script src="shared-ui.js?v=20261127"></script>
 <script>
   async function requireSession() {
     var { data } = await supabaseClient.auth.getSession();
@@ -246,8 +257,14 @@ tbody tr:last-child td { border-bottom: none; }
     var { data, error } = await supabaseClient.from("doctors").select("id, name").eq("active", true).order("name");
     if (error || !data) return;
     select.innerHTML = '<option value="">— No specific doctor —</option>' + data.map(function (d) {
-      return '<option value="' + d.id + '">' + d.name + "</option>";
+      return '<option value="' + escapeHtml(d.id) + '">' + escapeHtml(d.name) + "</option>";
     }).join("");
+    var filter = document.getElementById("cbDoctor");
+    var keep = filter.value;
+    filter.innerHTML = '<option value="">All doctors</option><option value="__none">No specific doctor</option>' + data.map(function (d) {
+      return '<option value="' + escapeHtml(d.id) + '">' + escapeHtml(d.name) + "</option>";
+    }).join("");
+    filter.value = keep;
   }
 
   async function loadRequests() {
@@ -258,7 +275,7 @@ tbody tr:last-child td { border-bottom: none; }
 
     var { data, error } = await supabaseClient
       .from("callback_requests")
-      .select("id, caller_name, phone_number, reason, status, created_at, contacted_at, contacted_by, doctors(name)")
+      .select("id, caller_name, phone_number, reason, status, created_at, contacted_at, contacted_by, doctor_id, doctors(name)")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -282,7 +299,45 @@ tbody tr:last-child td { border-bottom: none; }
       }
     }
 
-    count.textContent = data.length + " total";
+    allRequests = data;
+    requestStaffNames = staffNames;
+    renderRequests();
+  }
+
+  var allRequests = [];
+  var requestStaffNames = {};
+  function localDay(iso) {
+    var d = new Date(iso), p = function (n) { return String(n).padStart(2, "0"); };
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+  }
+  function renderRequests() {
+    var count = document.getElementById("requestCount");
+    var table = document.getElementById("requestsTable");
+    var body = document.getElementById("requestsBody");
+    var empty = document.getElementById("requestsEmpty");
+    var staffNames = requestStaffNames;
+    var q = document.getElementById("cbSearch").value.trim().toLowerCase();
+    var qDigits = q.replace(/\D/g, "");
+    var doctor = document.getElementById("cbDoctor").value;
+    var day = document.getElementById("cbDate").value;
+    var status = document.getElementById("cbStatus").value;
+    var data = allRequests.filter(function (r) {
+      if (doctor === "__none" ? r.doctor_id : (doctor && r.doctor_id !== doctor)) return false;
+      if (day && localDay(r.created_at) !== day) return false;
+      if (status && r.status !== status) return false;
+      if (!q) return true;
+      var text = [r.caller_name, r.phone_number, r.reason, r.doctors && r.doctors.name].filter(Boolean).join(" ").toLowerCase();
+      if (text.indexOf(q) !== -1) return true;
+      return qDigits.length >= 3 && String(r.phone_number || "").replace(/\D/g, "").indexOf(qDigits) !== -1;
+    });
+    var filtering = q || doctor || day || status;
+    count.textContent = filtering ? data.length + " of " + allRequests.length + " shown" : allRequests.length + " total";
+    if (!data.length) {
+      table.style.display = "none";
+      empty.style.display = "block";
+      empty.textContent = allRequests.length ? "No callback requests match these filters." : "No callback requests yet.";
+      return;
+    }
     table.style.display = "table";
     empty.style.display = "none";
 
@@ -301,6 +356,17 @@ tbody tr:last-child td { border-bottom: none; }
       return "<tr><td>" + escapeHtml(r.caller_name) + "</td><td>" + escapeHtml(doctorName) + "</td><td>" + escapeHtml(r.phone_number) + "</td><td>" + escapeHtml(reasonText) + "</td><td>" + escapeHtml(formatRequestedTime(r.created_at)) + "</td><td>" + statusPill + "</td><td>" + contactedBy + "</td><td>" + actionCell + "</td></tr>";
     }).join("");
   }
+
+  ["cbSearch", "cbDate"].forEach(function (id) { document.getElementById(id).addEventListener("input", renderRequests); });
+  ["cbDoctor", "cbStatus", "cbDate"].forEach(function (id) { document.getElementById(id).addEventListener("change", renderRequests); });
+  document.getElementById("cbClear").addEventListener("click", function () {
+    ["cbSearch", "cbDoctor", "cbDate", "cbStatus"].forEach(function (id) { document.getElementById(id).value = ""; });
+    renderRequests();
+  });
+  (function () {
+    var q = new URLSearchParams(location.search).get("q");
+    if (q) document.getElementById("cbSearch").value = q;
+  })();
 
   document.getElementById("requestsBody").addEventListener("click", async function (e) {
     var btn = e.target.closest("button[data-id]");
@@ -388,9 +454,10 @@ tbody tr:last-child td { border-bottom: none; }
     var session = await requireSession();
     if (!session) return;
     currentSession = session;
-    var userRole = await loadIdentityBadge(session);
     loadDoctorsIntoSelect();
     loadRequests();
+    var userRole = await loadIdentityBadge(session);
+    supabaseClient.channel("callback-page").on("postgres_changes", { event: "*", schema: "public", table: "callback_requests" }, function () { loadRequests(); }).subscribe();
   })();
 </script>
 
