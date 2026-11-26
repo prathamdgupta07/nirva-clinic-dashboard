@@ -328,6 +328,14 @@ body {
 .patient-list:focus-visible { outline: 2px solid #476653; outline-offset: 3px; }
 .patient-row { padding: 14px 12px; min-height: 78px; border-bottom: 1px solid #E7EBE6; border-left: 3px solid #B9C1B9; background: #fff; }
 .patient-row:last-child { border-bottom: 0; }
+.info-row { display: grid; grid-template-columns: minmax(150px, 1.5fr) minmax(120px, 1fr) minmax(100px, .8fr); gap: 14px; align-items: center; padding: 12px; border-bottom: 1px solid var(--border, #E7EBE6); }
+.info-row:last-child { border-bottom: 0; }
+.info-row .when { font-size: 13px; font-weight: 650; white-space: nowrap; }
+.info-row .when small { display: block; font-weight: 500; color: var(--text-muted, #667068); margin-top: 3px; }
+.info-row .tag { font-size: 12px; font-weight: 600; }
+.info-row .tag small { display: block; font-weight: 500; color: var(--text-muted, #667068); margin-top: 3px; }
+.info-row.state-cancelled { opacity: .65; }
+@media (max-width: 650px) { .info-row { grid-template-columns: 1fr auto; } .info-row .tag { grid-column: 1 / -1; } }
 .patient-row.state-arrived { background: #F1F5EF; border-left: 4px double #62775D; }
 .patient-row.state-completed { border-left-color: #687F64; }
 .patient-row.state-no_show { border-left: 3px dashed #9B8156; }
@@ -525,17 +533,27 @@ body {
         </div>
       </div>
 
-      <section class="appointment-panel">
+      <section class="appointment-panel" id="searchPanel" hidden>
+        <div class="list-heading"><div><h2>Search results <span id="searchCount" class="list-count">0</span></h2><p id="searchHint">Matching appointments from the last 30 days and all upcoming days</p></div></div>
+        <div id="searchResults" class="patient-list" role="region" aria-label="Search results" tabindex="0"></div>
+      </section>
+
+      <section class="appointment-panel" data-board-panel>
         <div class="list-heading"><div><h2>Active Appointments <span id="activeCount" class="list-count">0</span></h2><p>Expected and arrived patients, ordered by appointment time</p></div></div>
         <div class="list-labels"><span>Patient &amp; doctor</span><span>Time</span><span>Status</span><span>Actions</span></div>
         <div id="activeAppointments" class="patient-list" role="region" aria-label="Active appointments" tabindex="0"></div>
       </section>
-      <section class="appointment-panel">
+      <section class="appointment-panel" data-board-panel>
         <div class="list-heading"><div><h2>Previous Appointments <span id="previousCount" class="list-count">0</span></h2><p>Today's completed, no-show and cancelled appointments</p></div>
           <label class="previous-filter">Show <select id="previousFilter" aria-label="Filter previous appointments"><option value="">All outcomes</option><option value="completed">Completed</option><option value="no_show">No-show</option><option value="cancelled">Cancelled</option></select></label>
         </div>
         <div class="list-labels"><span>Patient &amp; doctor</span><span>Time</span><span>Status</span><span>Actions</span></div>
         <div id="previousAppointments" class="patient-list" role="region" aria-label="Previous appointments" tabindex="0"></div>
+      </section>
+
+      <section class="appointment-panel" id="upcomingPanel">
+        <div class="list-heading"><div><h2>Upcoming Appointments <span id="upcomingCount" class="list-count">0</span></h2><p>Bookings for the next 14 days, including new ones from Riya. Open the <a href="calendar.html">Calendar</a> for the full view.</p></div></div>
+        <div id="upcomingAppointments" class="patient-list" role="region" aria-label="Upcoming appointments" tabindex="0"><div class="empty-column">Loading upcoming appointments…</div></div>
       </section>
 
     </div>
@@ -788,7 +806,16 @@ body {
       booking.patient_name_snapshot, booking.phone_e164_snapshot,
       doctor.name, doctor.specialty, booking.source, booking.status
     ].filter(Boolean).join(" ").toLowerCase();
-    return searchable.indexOf(query) !== -1;
+    if (searchable.indexOf(query) !== -1) return true;
+    // Phone numbers: ignore spaces, dashes and "+91" so "98765 43210" matches.
+    var queryDigits = query.replace(/\D/g, "");
+    if (queryDigits.length >= 4) {
+      var phoneDigits = [patient.phone, patient.phone_e164, booking.phone_e164_snapshot].filter(Boolean).join(" ").replace(/[^0-9 ]/g, "").replace(/ +/g, " ");
+      if (phoneDigits.split(" ").some(function (p) { return p.indexOf(queryDigits) !== -1; })) return true;
+    }
+    // Every word must match somewhere, so "keshav priya" finds Keshav with Dr. Priya.
+    var words = query.split(/\s+/).filter(Boolean);
+    return words.length > 1 && words.every(function (w) { return searchable.indexOf(w) !== -1; });
   }
 
   async function loadBoard() {
@@ -833,7 +860,7 @@ body {
         (!sourceFilter || b.source === sourceFilter);
     });
     subtitle.textContent = bookingSearchQuery
-      ? visibleBookings.length + " of " + currentBookings.length + " appointments match your search"
+      ? "Search covers all dates. Results are below."
       : currentBookings.length + " appointment" + (currentBookings.length === 1 ? "" : "s") + " today";
 
     var confirmed = visibleBookings.filter(function (b) { return b.status === "confirmed"; });
@@ -869,9 +896,81 @@ body {
     requestAnimationFrame(sizeAppointmentLists);
   }
 
+  // ---------- Info rows (search results and upcoming list) ----------
+  function infoRow(b) {
+    var patientName = (b.patients && b.patients.name) || b.patient_name_snapshot || "Unknown patient";
+    var doctorName = (b.doctors && b.doctors.name) || "Unknown doctor";
+    var phone = (b.patients && (b.patients.phone_e164 || b.patients.phone)) || b.phone_e164_snapshot || "";
+    var labels = { confirmed: "Expected", arrived: "Arrived", completed: "Completed", no_show: "No-show", cancelled: "Cancelled", rescheduled: "Rescheduled" };
+    var d = new Date(b.appointment_time);
+    var day = d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+    return '<div class="info-row state-' + escapeHtml(b.status) + '">' +
+      '<div class="patient-details"><div class="patient-title">' + escapeHtml(patientName) + '</div><div class="patient-doctor">' + escapeHtml(doctorName) + (phone ? ' · ' + escapeHtml(phone) : '') + '</div></div>' +
+      '<div class="when">' + escapeHtml(day) + '<small>' + escapeHtml(formatTime(b.appointment_time)) + '</small></div>' +
+      '<div class="tag">' + escapeHtml(labels[b.status] || b.status) + '<small>' + (b.source === "ai_agent" ? "AI booking" : "Staff booking") + '</small></div>' +
+      '</div>';
+  }
+
+  // ---------- Upcoming appointments (after today) ----------
+  async function loadUpcoming() {
+    var target = document.getElementById("upcomingAppointments");
+    var end = startOfToday();
+    end.setDate(end.getDate() + 15);
+    var { data, error } = await supabaseClient
+      .from("bookings")
+      .select("*, patients(name, phone, phone_e164), doctors(name, specialty)")
+      .gte("appointment_time", startOfTomorrow().toISOString())
+      .lt("appointment_time", end.toISOString())
+      .in("status", ["confirmed", "arrived"])
+      .order("appointment_time", { ascending: true })
+      .limit(100);
+    if (error) { target.innerHTML = '<div class="empty-column">Could not load upcoming appointments.</div>'; return; }
+    var rows = data || [];
+    document.getElementById("upcomingCount").textContent = rows.length;
+    target.innerHTML = rows.length ? rows.map(infoRow).join("") : '<div class="empty-column">No upcoming appointments in the next 14 days.</div>';
+  }
+
+  // ---------- Search: every booking from 30 days ago onwards, not just today ----------
+  var searchTimer = null;
+  var searchRunId = 0;
+  async function runSearch() {
+    var runId = ++searchRunId;
+    var query = bookingSearchQuery;
+    var panel = document.getElementById("searchPanel");
+    var target = document.getElementById("searchResults");
+    var since = startOfToday();
+    since.setDate(since.getDate() - 30);
+    var { data, error } = await supabaseClient
+      .from("bookings")
+      .select("*, patients(name, phone, phone_e164), doctors(name, specialty)")
+      .gte("appointment_time", since.toISOString())
+      .order("appointment_time", { ascending: true })
+      .limit(1000);
+    if (runId !== searchRunId || query !== bookingSearchQuery) return;
+    panel.hidden = false;
+    if (error) { target.innerHTML = '<div class="empty-column">Search could not load appointments. Please try again.</div>'; return; }
+    var matches = (data || []).filter(function (b) { return matchesBookingSearch(b, query); });
+    // Upcoming first (soonest first), then past ones (most recent first).
+    var upcoming = matches.filter(function (b) { return new Date(b.appointment_time).getTime() >= startOfToday().getTime(); });
+    var past = matches.filter(function (b) { return new Date(b.appointment_time).getTime() < startOfToday().getTime(); }).reverse();
+    var ordered = upcoming.concat(past);
+    document.getElementById("searchCount").textContent = ordered.length;
+    target.innerHTML = ordered.length ? ordered.map(infoRow).join("") : '<div class="empty-column">No appointments match "' + escapeHtml(query) + '".</div>';
+  }
+
+  function applySearch() {
+    var searching = !!bookingSearchQuery;
+    document.querySelectorAll("[data-board-panel]").forEach(function (el) { el.hidden = searching; });
+    document.getElementById("upcomingPanel").hidden = searching;
+    if (!searching) { document.getElementById("searchPanel").hidden = true; searchRunId++; renderBoard(); return; }
+    renderBoard();
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(runSearch, 250);
+  }
+
   document.getElementById("bookingSearch").addEventListener("input", function (event) {
     bookingSearchQuery = event.target.value.trim().toLowerCase();
-    renderBoard();
+    applySearch();
   });
 
   document.getElementById("doctorFilter").addEventListener("change", function (event) {
@@ -959,7 +1058,7 @@ body {
       return;
     }
     showToast("Appointment updated.");
-    loadBoard();
+    refreshBookings();
   });
 
   // ---------- Needs Callback list ----------
@@ -1169,7 +1268,7 @@ body {
       overlay.style.display = "none";
       bookingRequestId = null;
       showToast("Booking saved successfully.");
-      loadBoard();
+      refreshBookings();
     } catch (err) {
       try { await addFailedBookingFollowup(name, phone, doctorId, err && err.code); } catch (_) { /* the safe booking error is still shown */ }
       modalError.textContent = safeBookingMessage(err);
@@ -1179,6 +1278,12 @@ body {
     }
   });
 
+  function refreshBookings() {
+    loadBoard();
+    loadUpcoming();
+    if (bookingSearchQuery) runSearch();
+  }
+
   // ---------- Realtime: live bookings feed ----------
   function subscribeToNewBookings() {
     supabaseClient
@@ -1186,16 +1291,15 @@ body {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "bookings" }, function (payload) {
         var row = payload.new;
         var apptDate = new Date(row.appointment_time);
-        if (apptDate >= startOfToday() && apptDate < startOfTomorrow()) {
-          if (row.source === "ai_agent") {
-            showToast("New booking from AI Agent");
-            playChime();
-          }
-          loadBoard();
+        if (row.source === "ai_agent" && apptDate >= startOfToday()) {
+          var isToday = apptDate < startOfTomorrow();
+          showToast("New booking from AI Agent" + (isToday ? "" : " for " + apptDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })));
+          playChime();
         }
+        refreshBookings();
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "bookings" }, function () {
-        loadBoard();
+        refreshBookings();
       })
       .subscribe();
   }
@@ -1276,9 +1380,12 @@ body {
     }
     loadDoctorsIntoSelect();
     loadBoard();
+    loadUpcoming();
     loadCallbackList();
     loadOperationalUpdates();
     subscribeToNewBookings();
+    // Safety net if a live update is missed: refresh every minute.
+    setInterval(function () { refreshBookings(); loadCallbackList(); }, 60000);
     subscribeToMissedCalls();
   })();
 
