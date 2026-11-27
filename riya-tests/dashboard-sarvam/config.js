@@ -82,6 +82,50 @@ window.addEventListener("pagehide", function () {
 // Dashboard pages retain their own Supabase session checks. Sign-in uses the
 // normal email/password flow; no second-factor challenge is required.
 
+// ---------- Automatic logout after 30 minutes of no activity ----------
+// Reception computers are often left unattended. If nobody moves the mouse,
+// types, scrolls or taps for 30 minutes, the dashboard logs out and returns
+// to the login page so patient details are not left open on screen.
+// Not used on the login and password-reset pages.
+(function () {
+  var page = (window.location.pathname.split("/").pop() || "").toLowerCase();
+  var IDLE_LIMIT_MS = 30 * 60 * 1000;
+  var ACTIVITY_KEY = "nirva_last_activity";
+  if (page === "login.html" || page === "reset-password.html" || page === "" || page === "index.html") {
+    // A fresh login starts a fresh 30-minute timer.
+    try { sessionStorage.removeItem(ACTIVITY_KEY); } catch (e) {}
+    return;
+  }
+  var loggingOut = false;
+  function markActive() {
+    try { sessionStorage.setItem(ACTIVITY_KEY, String(Date.now())); } catch (e) {}
+  }
+  function lastActive() {
+    try { return Number(sessionStorage.getItem(ACTIVITY_KEY)) || Date.now(); } catch (e) { return Date.now(); }
+  }
+  async function idleLogout() {
+    if (loggingOut) return;
+    loggingOut = true;
+    try { await recordLogout(); } catch (e) {}
+    try { await supabaseClient.auth.signOut({ scope: "local" }); } catch (e) {}
+    try { sessionStorage.removeItem(ACTIVITY_KEY); } catch (e) {}
+    window.location.replace("login.html?timeout=1");
+  }
+  // A page opened after a long gap in the same tab also counts as idle.
+  if (Date.now() - lastActive() > IDLE_LIMIT_MS) { idleLogout(); return; }
+  markActive();
+  var throttle = 0;
+  ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "wheel"].forEach(function (evt) {
+    window.addEventListener(evt, function () {
+      var now = Date.now();
+      if (now - throttle > 15000) { throttle = now; markActive(); }
+    }, { passive: true, capture: true });
+  });
+  setInterval(function () {
+    if (Date.now() - lastActive() > IDLE_LIMIT_MS) idleLogout();
+  }, 30000);
+})();
+
 // ---------- Test environment label (Riya Sarvam test) ----------
 var RIYA_TEST_LABEL = "SARVAM TEST";
 (function () {

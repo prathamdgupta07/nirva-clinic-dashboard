@@ -408,6 +408,14 @@ body {
     document.getElementById("passwordField").classList.add("error");
   }
 
+  // Shown after the dashboard logged out on its own after 30 idle minutes.
+  try {
+    if (new URLSearchParams(window.location.search).get("timeout") === "1") {
+      errorBanner.lastChild.textContent = " You were logged out after 30 minutes of no activity. Please log in again.";
+      errorBanner.classList.add("show");
+    }
+  } catch (e) {}
+
   function clearError() {
     errorBanner.classList.remove("show");
     document.getElementById("emailField").classList.remove("error");
