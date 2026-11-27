@@ -7,7 +7,7 @@ What patients get (Sarvam Riya and the staff dashboard):
 | Riya or staff books | Confirmation: name, phone, doctor, date, time, address |
 | Riya or staff reschedules | New date and time, plus the old slot that was released |
 | Riya or staff cancels | Cancellation notice with the number to rebook |
-| 6:00 PM the evening before | Reminder for tomorrow's confirmed visits |
+| 2 hours before the visit | Reminder (change the gap in step 5) |
 
 Messages go through Meta's WhatsApp Cloud API directly (no monthly fee,
 about ₹0.115 + GST per message). Nothing is sent until step 5 turns it on.
@@ -67,6 +67,7 @@ update private.whatsapp_settings set
   clinic_name    = 'Nirva Multi-Specialty Hospital',
   clinic_address = 'Your clinic address here',
   clinic_phone   = '+91 XXXXX XXXXX',
+  reminder_minutes_before = 120,   -- 120 = 2 hours before, 60 = 1 hour before
   updated_at     = now()
 where id;
 ```
@@ -101,5 +102,7 @@ template that is not approved yet). `skipped` = the visit was cancelled or
 moved before the message went out. Failed sends retry up to 3 times
 (after 2, 4 and 8 minutes).
 
-To change the reminder time, change `'30 12 * * *'` in `08_whatsapp.sql`
-(it is in UTC: 12:30 UTC = 6:00 PM India) and run the file again.
+To change the reminder gap later, run for example
+`update private.whatsapp_settings set reminder_minutes_before = 60 where id;`
+(60 = 1 hour before). A booking made less than that before the visit gets
+only the confirmation, no separate reminder.

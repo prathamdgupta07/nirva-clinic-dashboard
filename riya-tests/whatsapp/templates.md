@@ -67,7 +67,7 @@ Samples: 1 `Nirva Multi-Specialty Hospital` · 2 `Rahul Sharma` · 3 `Dr. Ananya
 ## 4. `appointment_reminder`
 
 ```
-Reminder: you have an appointment at {{1}} tomorrow.
+Reminder: your appointment at {{1}} is coming up soon.
 
 Patient name: {{2}}
 Phone: {{3}}

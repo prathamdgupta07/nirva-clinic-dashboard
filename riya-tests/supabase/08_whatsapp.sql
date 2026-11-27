@@ -9,8 +9,9 @@
 --      private.whatsapp_messages and pokes the `whatsapp-send` Edge Function.
 --   3. The Edge Function sends queued messages through Meta and records the
 --      result. A cron job every minute retries anything still waiting.
---   4. Every day at 18:00 India time a cron job queues reminders for
---      tomorrow's confirmed appointments.
+--   4. Every minute a cron job queues a reminder for each confirmed
+--      appointment that starts within reminder_minutes_before (default 120 =
+--      2 hours). Bookings made inside that window get no separate reminder.
 -- Nothing is sent until private.whatsapp_settings.enabled = true.
 -- A failure here can never block a booking: every step catches its errors.
 
@@ -29,6 +30,9 @@ create table if not exists private.whatsapp_settings (
   time_zone text not null default 'Asia/Kolkata',
   updated_at timestamptz not null default now()
 );
+alter table private.whatsapp_settings
+  add column if not exists reminder_minutes_before integer not null default 120
+    check (reminder_minutes_before between 15 and 1440);
 insert into private.whatsapp_settings (id) values (true) on conflict (id) do nothing;
 alter table private.whatsapp_settings enable row level security;
 
@@ -195,21 +199,28 @@ create trigger whatsapp_on_appointment_event
   for each row execute function private.whatsapp_on_appointment_event();
 
 -- -------------------------------------------------------------- reminders
--- Queue a reminder for every confirmed appointment tomorrow (India time).
+-- Queue a reminder for each confirmed appointment starting within the next
+-- reminder_minutes_before minutes. Skips bookings made inside that window
+-- (the patient just got the confirmation).
 create or replace function private.whatsapp_queue_reminders()
 returns integer
 language plpgsql security definer
 set search_path = pg_catalog, public, private
 as $$
 declare
-  v_tz text; v_count integer := 0; r record;
+  v_lead interval; v_count integer := 0; r record;
 begin
-  select time_zone into v_tz from private.whatsapp_settings where id and enabled;
-  if v_tz is null then return 0; end if;
+  select make_interval(mins => reminder_minutes_before) into v_lead
+  from private.whatsapp_settings where id and enabled;
+  if v_lead is null then return 0; end if;
   for r in
-    select id from public.bookings
-    where status = 'confirmed'
-      and (appointment_time at time zone v_tz)::date = (now() at time zone v_tz)::date + 1
+    select b.id from public.bookings b
+    where b.status = 'confirmed'
+      and b.appointment_time > now()
+      and b.appointment_time <= now() + v_lead
+      and b.created_at <= b.appointment_time - v_lead
+      and not exists (select 1 from private.whatsapp_messages m
+                      where m.booking_id = b.id and m.kind = 'reminder')
   loop
     if private.whatsapp_enqueue(r.id, 'reminder') then v_count := v_count + 1; end if;
   end loop;
@@ -286,10 +297,9 @@ revoke all on function private.whatsapp_queue_reminders() from public, anon, aut
 do $$
 begin
   perform cron.unschedule(jobname) from cron.job
-   where jobname in ('whatsapp-retry', 'whatsapp-daily-reminders');
+   where jobname in ('whatsapp-retry', 'whatsapp-daily-reminders', 'whatsapp-reminders');
   perform cron.schedule('whatsapp-retry', '* * * * *', 'select private.whatsapp_kick()');
-  -- 12:30 UTC = 18:00 India time
-  perform cron.schedule('whatsapp-daily-reminders', '30 12 * * *', 'select private.whatsapp_queue_reminders()');
+  perform cron.schedule('whatsapp-reminders', '* * * * *', 'select private.whatsapp_queue_reminders()');
 end $$;
 
 select 'whatsapp ok' as status;
