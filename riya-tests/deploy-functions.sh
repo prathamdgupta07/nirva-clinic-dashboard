@@ -15,13 +15,13 @@ WORK="$(mktemp -d)"
 mkdir -p "$WORK/supabase/functions"
 for fn in check-availability book-appointment find-appointment-for-reschedule reschedule-appointment \
           cancel-appointment save-callback-request get-doctor-hours log-call \
-          staff-book-appointment staff-appointment-action staff-complete-callback update-doctor-leave "$WEBHOOK"; do
+          staff-book-appointment staff-appointment-action staff-complete-callback update-doctor-leave whatsapp-send "$WEBHOOK"; do
   cp -R "$HERE/functions/$fn" "$WORK/supabase/functions/$fn"
 done
 {
   echo "project_id = \"nirva-riya-$PLATFORM-test\""
   for fn in check-availability book-appointment find-appointment-for-reschedule reschedule-appointment \
-            cancel-appointment save-callback-request get-doctor-hours log-call "$WEBHOOK"; do
+            cancel-appointment save-callback-request get-doctor-hours log-call whatsapp-send "$WEBHOOK"; do
     printf '\n[functions.%s]\nverify_jwt = false\n' "$fn"
   done
   for fn in staff-book-appointment staff-appointment-action staff-complete-callback update-doctor-leave; do
