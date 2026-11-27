@@ -1,20 +1,23 @@
-# Daily backup of the Riya / Nirva Supabase databases.
+# Daily backup of the Riya / Nirva Supabase databases to Google Drive.
 #
 # What it does, every night at 2:00 AM India time:
-#   1. Copies each database (users, roles, tables, and all rows) with the
-#      official Supabase CLI ("supabase db dump").
-#   2. Locks the copy inside a password-protected .7z file (AES-256, file
-#      names hidden too). This repository is public, so the backup is never
-#      stored unlocked.
-#   3. Keeps the locked file on GitHub for 30 days, outside Supabase.
+#   1. A temporary GitHub machine copies each database (users, roles, tables
+#      and all rows) with the official Supabase CLI ("supabase db dump").
+#   2. It locks the copy in a password-protected .7z file (AES-256, file
+#      names hidden too).
+#   3. It uploads the locked file to the "Nirva Backups" folder in Pratham's
+#      private Google Drive, and deletes copies there older than 30 days.
+#   4. The machine is then thrown away. Nothing from the database is ever
+#      saved on GitHub: no commits, no artifacts, nothing in the logs.
 #
-# Secrets it needs (Settings > Secrets and variables > Actions):
+# Secrets it needs (GitHub > Settings > Secrets and variables > Actions):
 #   BACKUP_PASSWORD  - password that locks every backup file (required)
+#   RCLONE_CONFIG    - Google Drive sign-in made with rclone (required)
 #   SARVAM_DB_URL    - Session pooler connection string, Sarvam Riya database
 #   MAIN_DB_URL      - Session pooler connection string, main dashboard database
 # A database whose secret is empty is skipped with a warning.
 #
-# How to restore: see BACKUP_AND_RESTORE.md in this repository.
+# Setup and restore steps: see BACKUP_AND_RESTORE.md in this repository.
 
 name: Daily database backup
 
@@ -47,6 +50,8 @@ jobs:
     env:
       DB_URL: ${{ secrets[matrix.secret] }}
       BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+      RCLONE_CONFIG_TEXT: ${{ secrets.RCLONE_CONFIG }}
+      DRIVE_FOLDER: "nirvadrive:Nirva Backups"
 
     steps:
       - name: Check secrets
@@ -54,6 +59,10 @@ jobs:
         run: |
           if [ -z "$BACKUP_PASSWORD" ]; then
             echo "::error::BACKUP_PASSWORD secret is missing. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          if [ -z "$RCLONE_CONFIG_TEXT" ]; then
+            echo "::error::RCLONE_CONFIG secret is missing, so there is nowhere to save the backup. See BACKUP_AND_RESTORE.md."
             exit 1
           fi
           if [ -z "$DB_URL" ]; then
@@ -117,12 +126,25 @@ jobs:
           ls -la "${DIR}.7z"
           echo "Saved ${DIR}.7z ($(du -h "${DIR}.7z" | cut -f1))" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Keep backup for 30 days
+      - name: Upload to Google Drive
         if: steps.check.outputs.skip == 'false'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.DIR }}
-          path: ${{ env.DIR }}.7z
-          retention-days: 30
-          compression-level: 0
-          if-no-files-found: error
+        run: |
+          set -euo pipefail
+          command -v rclone >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq rclone; }
+          mkdir -p ~/.config/rclone
+          printf '%s\n' "$RCLONE_CONFIG_TEXT" > ~/.config/rclone/rclone.conf
+          chmod 600 ~/.config/rclone/rclone.conf
+          rclone copy "${DIR}.7z" "$DRIVE_FOLDER/${{ matrix.name }}/" --retries 5
+          # Confirm it really arrived before calling this a success.
+          rclone lsf "$DRIVE_FOLDER/${{ matrix.name }}/" | grep -qx "${DIR}.7z" \
+            || { echo "::error::Upload to Google Drive could not be confirmed"; exit 1; }
+          echo "Uploaded to Google Drive: Nirva Backups/${{ matrix.name }}/${DIR}.7z" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Delete Drive copies older than 30 days
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          # Only touches files this backup job created (Drive access is limited
+          # to its own files). Deleted copies go to Drive's Bin first.
+          rclone delete "$DRIVE_FOLDER/${{ matrix.name }}/" --min-age 30d --include "*.7z" -v 2>&1 | tail -n 20
+          rm -f "${DIR}.7z" ~/.config/rclone/rclone.conf
