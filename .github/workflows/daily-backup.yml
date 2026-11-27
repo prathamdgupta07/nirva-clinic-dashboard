@@ -1,0 +1,128 @@
+# Daily backup of the Riya / Nirva Supabase databases.
+#
+# What it does, every night at 2:00 AM India time:
+#   1. Copies each database (users, roles, tables, and all rows) with the
+#      official Supabase CLI ("supabase db dump").
+#   2. Locks the copy inside a password-protected .7z file (AES-256, file
+#      names hidden too). This repository is public, so the backup is never
+#      stored unlocked.
+#   3. Keeps the locked file on GitHub for 30 days, outside Supabase.
+#
+# Secrets it needs (Settings > Secrets and variables > Actions):
+#   BACKUP_PASSWORD  - password that locks every backup file (required)
+#   SARVAM_DB_URL    - Session pooler connection string, Sarvam Riya database
+#   MAIN_DB_URL      - Session pooler connection string, main dashboard database
+# A database whose secret is empty is skipped with a warning.
+#
+# How to restore: see BACKUP_AND_RESTORE.md in this repository.
+
+name: Daily database backup
+
+on:
+  schedule:
+    - cron: "30 20 * * *" # 20:30 UTC = 2:00 AM IST
+  workflow_dispatch: # lets you press "Run workflow" by hand
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Back up ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: sarvam
+            secret: SARVAM_DB_URL
+          - name: main
+            secret: MAIN_DB_URL
+
+    env:
+      DB_URL: ${{ secrets[matrix.secret] }}
+      BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+
+    steps:
+      - name: Check secrets
+        id: check
+        run: |
+          if [ -z "$BACKUP_PASSWORD" ]; then
+            echo "::error::BACKUP_PASSWORD secret is missing. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          if [ -z "$DB_URL" ]; then
+            echo "::warning::${{ matrix.secret }} secret is not set, so the ${{ matrix.name }} database was NOT backed up."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Supabase CLI
+        if: steps.check.outputs.skip == 'false'
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Dump database
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          STAMP="$(TZ=Asia/Kolkata date +%Y-%m-%d_%H%M)-IST"
+          DIR="nirva-${{ matrix.name }}-${STAMP}"
+          mkdir -p "work/$DIR"
+          cd "work/$DIR"
+
+          supabase db dump --db-url "$DB_URL" -f roles.sql --role-only
+          supabase db dump --db-url "$DB_URL" -f schema.sql
+          supabase db dump --db-url "$DB_URL" -f data.sql --data-only --use-copy
+
+          # A real database always has a schema; an empty file means the dump failed.
+          for f in roles.sql schema.sql data.sql; do
+            [ -s "$f" ] || { echo "::error::$f is empty, backup failed"; exit 1; }
+          done
+          grep -q "CREATE TABLE" schema.sql || { echo "::error::schema.sql has no tables, backup failed"; exit 1; }
+
+          {
+            echo "Nirva database backup"
+            echo "Database: ${{ matrix.name }}"
+            echo "Taken: $STAMP"
+            echo "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo
+            echo "Rows per table in this backup:"
+            awk '/^COPY /{t=$2; n=0; next} /^\\\.$/{if(t!="") print "  " t ": " n; t=""; next} t!=""{n++}' data.sql
+            echo
+            echo "How to restore: see BACKUP_AND_RESTORE.md in the GitHub repository."
+          } > README.txt
+
+          ls -la
+          echo "DIR=$DIR" >> "$GITHUB_ENV"
+
+      - name: Lock backup with password
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          command -v 7z >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq p7zip-full; }
+          cd work
+          7z a -t7z -mx=9 -mhe=on "-p${BACKUP_PASSWORD}" "../${DIR}.7z" "$DIR" > /dev/null
+          cd ..
+          # Prove the locked file opens with the password before saving it.
+          7z t "-p${BACKUP_PASSWORD}" "${DIR}.7z" > /dev/null
+          rm -rf work
+          ls -la "${DIR}.7z"
+          echo "Saved ${DIR}.7z ($(du -h "${DIR}.7z" | cut -f1))" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep backup for 30 days
+        if: steps.check.outputs.skip == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.DIR }}
+          path: ${{ env.DIR }}.7z
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: error
