@@ -6,7 +6,10 @@
 #   2. It locks the copy in a password-protected .7z file (AES-256, file
 #      names hidden too).
 #   3. It uploads the locked file to the "Nirva Backups" folder in Pratham's
-#      private Google Drive, and deletes copies there older than 30 days.
+#      private Google Drive:
+#        <db>/daily/    every night's copy, kept for 1 year (365 days)
+#        <db>/monthly/  the first copy of each month, kept for 3 years
+#      Older copies are deleted automatically.
 #   4. The machine is then thrown away. Nothing from the database is ever
 #      saved on GitHub: no commits, no artifacts, nothing in the logs.
 #
@@ -134,17 +137,32 @@ jobs:
           mkdir -p ~/.config/rclone
           printf '%s\n' "$RCLONE_CONFIG_TEXT" > ~/.config/rclone/rclone.conf
           chmod 600 ~/.config/rclone/rclone.conf
-          rclone copy "${DIR}.7z" "$DRIVE_FOLDER/${{ matrix.name }}/" --retries 5
-          # Confirm it really arrived before calling this a success.
-          rclone lsf "$DRIVE_FOLDER/${{ matrix.name }}/" | grep -qx "${DIR}.7z" \
-            || { echo "::error::Upload to Google Drive could not be confirmed"; exit 1; }
-          echo "Uploaded to Google Drive: Nirva Backups/${{ matrix.name }}/${DIR}.7z" >> "$GITHUB_STEP_SUMMARY"
+          BASE="$DRIVE_FOLDER/${{ matrix.name }}"
 
-      - name: Delete Drive copies older than 30 days
+          # Every night's copy goes to daily/.
+          rclone copy "${DIR}.7z" "$BASE/daily/" --retries 5
+          # Confirm it really arrived before calling this a success.
+          rclone lsf "$BASE/daily/" | grep -qxF "${DIR}.7z" \
+            || { echo "::error::Upload to Google Drive could not be confirmed"; exit 1; }
+          echo "Uploaded: Nirva Backups/${{ matrix.name }}/daily/${DIR}.7z" >> "$GITHUB_STEP_SUMMARY"
+
+          # The first successful copy of each month also goes to monthly/.
+          # (If the run on the 1st fails, the next good night fills the gap.)
+          MONTH="$(TZ=Asia/Kolkata date +%Y-%m)"
+          if ! rclone lsf "$BASE/monthly/" 2>/dev/null | grep -qF -- "-${MONTH}-"; then
+            rclone copy "${DIR}.7z" "$BASE/monthly/" --retries 5
+            rclone lsf "$BASE/monthly/" | grep -qxF "${DIR}.7z" \
+              || { echo "::error::Monthly copy to Google Drive could not be confirmed"; exit 1; }
+            echo "Also saved as this month's copy: Nirva Backups/${{ matrix.name }}/monthly/${DIR}.7z" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Delete old Drive copies (daily after 1 year, monthly after 3 years)
         if: steps.check.outputs.skip == 'false'
         run: |
           set -euo pipefail
           # Only touches files this backup job created (Drive access is limited
           # to its own files). Deleted copies go to Drive's Bin first.
-          rclone delete "$DRIVE_FOLDER/${{ matrix.name }}/" --min-age 30d --include "*.7z" -v 2>&1 | tail -n 20
+          BASE="$DRIVE_FOLDER/${{ matrix.name }}"
+          rclone delete "$BASE/daily/"   --min-age 365d  --include "*.7z" -v 2>&1 | tail -n 20
+          rclone delete "$BASE/monthly/" --min-age 1095d --include "*.7z" -v 2>&1 | tail -n 20
           rm -f "${DIR}.7z" ~/.config/rclone/rclone.conf

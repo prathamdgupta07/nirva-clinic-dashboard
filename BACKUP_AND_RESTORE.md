@@ -12,7 +12,7 @@ Every night at **2:00 AM India time**:
 3. It locks the copy with your backup password.
 4. It uploads the locked file to a folder called **Nirva Backups** in **your
    private Google Drive**.
-5. It deletes copies in that folder that are older than 30 days.
+5. It deletes old copies automatically (see "How long copies are kept").
 6. The temporary computer is thrown away.
 
 **What is on GitHub:** only the code. That means the HTML and JavaScript
@@ -26,6 +26,26 @@ the code or the logs, and nothing is kept for download.
 |---|---|---|
 | `Nirva Backups/sarvam/` | Sarvam Riya database (`nirva-riya-sarvam-test`) | Riya on Sarvam and the Sarvam dashboard |
 | `Nirva Backups/main/` | Main dashboard database | nirva-dashboard-staging.vercel.app |
+
+### How long copies are kept
+
+Inside each database folder there are two folders:
+
+| Folder | What is in it | Kept for |
+|---|---|---|
+| `daily/` | every night's copy | **1 year** (365 copies) |
+| `monthly/` | the first copy of each month | **3 years** (36 copies) |
+
+Every copy is a **full** copy of the whole database, not just that day's
+changes. So any single file is enough to bring the clinic back to that night,
+including old bookings that were changed later.
+
+Why these numbers: India's data law (DPDP Rules 2025, Rule 8) asks for at
+least 1 year, and doctors' rules (IMC Regulations 2002) ask clinics to keep
+patient records for at least 3 years. The live database keeps the records
+themselves. The backups make sure a mistake or a crash can be undone within
+those periods. Each copy is small (well under 1 MB today), so all of this fits
+comfortably in Drive's free 15 GB.
 
 Each backup holds everything inside the database: patients, appointments,
 doctors, schedules, leave, callbacks, call logs, staff logins and roles, and
@@ -129,13 +149,15 @@ shows a yellow warning.
 2. Click **Run workflow**, then the green **Run workflow** button.
 3. After 2 to 3 minutes, both lines should show a green tick.
 4. Open Google Drive. You should see **Nirva Backups**, with a `sarvam` and a
-   `main` folder, each holding one `.7z` file.
+   `main` folder. Each has a `daily` and a `monthly` folder with one `.7z`
+   file in each.
 
 If something fails, GitHub emails you. Send the email or the link to Claude.
 
 ## How to open a backup
 
-1. In Google Drive, open **Nirva Backups**, then `sarvam` or `main`.
+1. In Google Drive, open **Nirva Backups**, then `sarvam` or `main`, then
+   `daily` (last 12 months) or `monthly` (older, up to 3 years).
 2. Download the `.7z` file for the date you want. The date is in the name.
 3. Open it with **Keka** or **The Unarchiver** (both free on the Mac App
    Store), and type the backup password.
@@ -195,6 +217,9 @@ These are the restore steps, for whoever does it:
   and replace the `RCLONE_CONFIG` secret.
 - Deleted old copies go to your Drive **Bin** first. Drive empties the Bin
   after 30 days.
+- Watch your Drive space once a few clinics are live. Google shows it at the
+  bottom left of Drive. If it gets close to 15 GB, a 100 GB Google One plan
+  is about ₹130 a month.
 - GitHub turns off scheduled jobs in a public repository after **60 days with
   no new commits**. It emails you first. If you get that email, open the
   Actions tab and click **Enable workflow**.
