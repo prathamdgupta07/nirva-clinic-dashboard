@@ -1,0 +1,30 @@
+{
+  "name": "get_doctor_hours",
+  "description": "Get a doctor's working days and hours.",
+  "pre_call_message": "One moment.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "doctor_name": {
+        "type": "string",
+        "description": "Doctor's full name exactly as listed, e.g. 'Dr. Ananya Sharma'"
+      }
+    },
+    "required": [
+      "doctor_name"
+    ]
+  },
+  "key": "custom_task",
+  "value": {
+    "method": "POST",
+    "url": "https://esvurkdwzcxtzimbpkwv.supabase.co/functions/v1/get-doctor-hours",
+    "param": {
+      "doctor_name": "%(doctor_name)s"
+    },
+    "api_token": null,
+    "headers": {
+      "Content-Type": "application/json",
+      "x-webhook-secret": "PASTE_BOLNA_SECRET_HERE"
+    }
+  }
+}

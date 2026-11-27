@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://wsqwgomduqehbtdiawcw.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<title>Nirva — Calendar</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
+<style>
+:root {
+  --bg: #F5F7FA; --sidebar-bg: #FFFFFF; --card-bg: #FFFFFF; --border: #EAEDF2;
+  --text-dark: #1A1F2B; --text-muted: #7C8493; --active-bg: #EEF2FF; --active-text: #4F46E5;
+  --blue: #3B82F6; --blue-soft: #EAF2FE; --green: #22C55E; --green-soft: #E9FBF0;
+  --red: #EF4444; --red-soft: #FDECEC; --purple: #8B5CF6; --purple-soft: #F3EEFE;
+  --amber: #F59E0B; --amber-soft: #FEF6E7;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text-dark); }
+.app { display: flex; min-height: 100vh; }
+.sidebar { width: 240px; flex-shrink: 0; background-color: var(--sidebar-bg); border-right: 1px solid var(--border); padding: 22px 16px; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.sidebar .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 24px; }
+.sidebar .brand .logo { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--blue), var(--purple)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 14px; }
+.sidebar .brand span { font-weight: 700; font-size: 16px; }
+.sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+.sidebar nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: var(--text-muted); font-size: 14px; font-weight: 500; transition: background-color 0.15s ease, color 0.15s ease; }
+.sidebar nav a:hover { background-color: #F5F6FA; color: var(--text-dark); }
+.sidebar nav a.active { background-color: var(--active-bg); color: var(--active-text); font-weight: 600; }
+.sidebar nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
+.sidebar .bottom { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+.sidebar .bottom a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: var(--text-muted); font-size: 13px; font-weight: 500; }
+.sidebar .bottom a svg { width: 16px; height: 16px; flex-shrink: 0; }
+.main { flex: 1; min-width: 0; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; background-color: var(--card-bg); border-bottom: 1px solid var(--border); }
+.topbar .search { display: flex; align-items: center; gap: 10px; background-color: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 9px 14px; width: 320px; color: var(--text-muted); font-size: 13.5px; }
+.topbar .search svg { width: 16px; height: 16px; flex-shrink: 0; }
+.topbar .right { display: flex; align-items: center; gap: 18px; }
+.topbar .bell { width: 36px; height: 36px; border-radius: 50%; background-color: var(--bg); display: flex; align-items: center; justify-content: center; color: var(--text-muted); position: relative; }
+.topbar .bell svg { width: 17px; height: 17px; }
+.topbar .bell .dot { position: absolute; top: 8px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background-color: var(--red); border: 1.5px solid white; }
+.topbar .user { display: flex; align-items: center; gap: 10px; }
+.topbar .user .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--purple)); color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.topbar .user .info div:first-child { font-size: 13.5px; font-weight: 600; }
+.topbar .user .info div:last-child { font-size: 12px; color: var(--text-muted); }
+.content { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+
+.greeting { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+.greeting h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+.greeting p { margin: 0; font-size: 13.5px; color: var(--text-muted); }
+.greeting .right-actions { display: flex; align-items: center; gap: 12px; }
+
+.date-nav { display: flex; align-items: center; gap: 8px; background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px; }
+.date-nav button { width: 30px; height: 30px; border: none; background: none; border-radius: 7px; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; }
+.date-nav button:hover { background-color: var(--bg); color: var(--text-dark); }
+.date-nav button svg { width: 16px; height: 16px; }
+.date-nav input[type="date"] { border: none; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--text-dark); background: none; padding: 4px 6px; }
+.date-nav .today-btn { width: auto; padding: 0 12px; font-size: 12.5px; font-weight: 600; border-left: 1px solid var(--border); border-radius: 0; }
+
+.btn-primary {
+  background-color: var(--blue); color: white; border: none; border-radius: 10px;
+  font-size: 13.5px; font-weight: 600; padding: 10px 18px; cursor: pointer;
+  font-family: inherit; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary:hover { background-color: #2563EB; }
+.btn-primary svg { width: 16px; height: 16px; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card { background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+.stat-card .label { font-size: 12.5px; color: var(--text-muted); margin-bottom: 6px; }
+.stat-card .value { font-size: 26px; font-weight: 700; }
+.stat-card.c-blue .value { color: var(--blue); }
+.stat-card.c-amber .value { color: #92660A; }
+.stat-card.c-green .value { color: var(--green); }
+.stat-card.c-purple .value { color: var(--purple); }
+
+.board-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.board-header h2 { font-size: 15.5px; font-weight: 700; margin: 0; }
+.board-header .subtitle { font-size: 12.5px; color: var(--text-muted); }
+
+.board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+.column { background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-height: 160px; }
+.column-title { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; padding: 4px 4px 8px; color: var(--text-muted); }
+.column-title .count { background-color: var(--bg); border-radius: 999px; padding: 2px 9px; font-size: 11.5px; font-weight: 700; color: var(--text-dark); }
+.column.confirmed .column-title { color: #16803C; }
+.column.arrived .column-title { color: #1D4ED8; }
+.column.completed .column-title { color: var(--text-muted); }
+
+.booking-card { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background-color: var(--bg); display: flex; flex-direction: column; gap: 8px; }
+.booking-card.next-up { border-color: var(--blue); background-color: var(--blue-soft); box-shadow: 0 0 0 1px var(--blue); }
+.booking-card .row-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.booking-card .patient-name { font-size: 14px; font-weight: 700; }
+.booking-card .doctor-name { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.booking-card .time { font-size: 12.5px; font-weight: 700; color: var(--text-dark); white-space: nowrap; }
+.booking-card .next-up-tag { font-size: 10.5px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+
+.source-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; padding: 3px 9px 3px 7px; border-radius: 999px; width: fit-content; }
+.source-badge svg { width: 12px; height: 12px; }
+.source-badge.ai_agent { background-color: var(--purple-soft); color: #6D28D9; }
+.source-badge.staff { background-color: var(--blue-soft); color: #1D4ED8; }
+
+.card-actions { display: flex; gap: 6px; margin-top: 2px; }
+.card-actions button { flex: 1; font-family: inherit; font-size: 11.5px; font-weight: 600; padding: 7px 8px; border-radius: 7px; border: 1px solid var(--border); background-color: white; color: var(--text-dark); cursor: pointer; }
+.card-actions button:hover { background-color: #F5F6FA; }
+.card-actions button.primary { background-color: var(--blue); color: white; border-color: var(--blue); }
+.card-actions button.primary:hover { background-color: #2563EB; }
+.card-actions button.danger { color: #B91C1C; }
+
+.empty-column { font-size: 12.5px; color: var(--text-muted); text-align: center; padding: 20px 8px; }
+
+.side-card { background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+.side-card h3 { font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); margin: 0 0 10px; }
+.side-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.side-row:last-child { border-bottom: none; }
+.side-row .name { font-weight: 600; }
+.side-row .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.side-row .tag.no_show { background-color: var(--amber-soft); color: #92660A; }
+.side-row .tag.cancelled { background-color: var(--red-soft); color: #B91C1C; }
+.side-row.is-cancelled { opacity: 0.55; }
+.side-row.is-cancelled .name { color: var(--text-muted); filter: grayscale(1); }
+
+.modal-overlay { position: fixed; inset: 0; background-color: rgba(20,24,40,0.45); z-index: 900; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal { background-color: white; border-radius: 16px; padding: 24px; width: 100%; max-width: 420px; }
+.modal h2 { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
+.modal p.hint { margin: 0 0 18px; font-size: 12.5px; color: var(--text-muted); }
+.modal .form-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.modal .form-field label { font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+.modal .form-field input, .modal .form-field select { border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13.5px; color: var(--text-dark); font-family: inherit; }
+.modal .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+.modal .modal-actions button { flex: 1; padding: 10px; border-radius: 9px; font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.modal .modal-actions .cancel { background-color: var(--bg); border: 1px solid var(--border); color: var(--text-dark); }
+.modal .modal-actions .submit { background-color: var(--blue); border: none; color: white; }
+.modal-error { color: #B91C1C; font-size: 12.5px; margin-bottom: 10px; display: none; }
+
+@media (max-width: 1000px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .board { grid-template-columns: 1fr; }
+}
+/* Two quiet, compact work lists; patterns and labels convey status. */
+.appointment-panel { background: #fff; border: 1px solid #DDE2E0; border-radius: 14px; padding: 18px; margin-bottom: 24px; }
+.list-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 16px; }
+.list-heading h2 { margin: 0; color: #24352F; font-size: 16px; }
+.list-heading p { margin: 5px 0 0; font-size: 12px; color: #6A746F; }
+.list-count { font-size: 12px; background: #EEF1EE; color: #526158; border-radius: 20px; padding: 3px 9px; margin-left: 7px; }
+.list-labels, .patient-row { display: grid; grid-template-columns: minmax(150px, 1.5fr) minmax(70px, .65fr) minmax(100px, .8fr) minmax(235px, 1.65fr); gap: 14px; align-items: center; }
+.list-labels { padding: 9px 14px; background: #F4F5F2; color: #667068; font-size: 11px; font-weight: 600; border-radius: 7px; margin-bottom: 8px; }
+.patient-list { overflow-y: auto; overscroll-behavior-y: contain; scrollbar-gutter: stable; scrollbar-color: #A3AEA7 #F1F3F0; }
+.patient-list:focus-visible { outline: 2px solid #476653; outline-offset: 3px; }
+.patient-row { padding: 14px 12px; min-height: 78px; border-bottom: 1px solid #E7EBE6; border-left: 3px solid #B9C1B9; background: #fff; }
+.patient-row:last-child { border-bottom: 0; }
+.info-row { display: grid; grid-template-columns: minmax(150px, 1.5fr) minmax(120px, 1fr) minmax(100px, .8fr); gap: 14px; align-items: center; padding: 12px; border-bottom: 1px solid var(--border, #E7EBE6); }
+.info-row:last-child { border-bottom: 0; }
+.info-row .when { font-size: 13px; font-weight: 650; white-space: nowrap; }
+.info-row .when small { display: block; font-weight: 500; color: var(--text-muted, #667068); margin-top: 3px; }
+.info-row .tag { font-size: 12px; font-weight: 600; }
+.info-row .tag small { display: block; font-weight: 500; color: var(--text-muted, #667068); margin-top: 3px; }
+.info-row.state-cancelled { opacity: .65; }
+@media (max-width: 650px) { .info-row { grid-template-columns: 1fr auto; } .info-row .tag { grid-column: 1 / -1; } }
+.patient-row.state-arrived { background: #F1F5EF; border-left: 4px double #62775D; }
+.patient-row.state-completed { border-left-color: #687F64; }
+.patient-row.state-no_show { border-left: 3px dashed #9B8156; }
+.patient-row.state-cancelled { border-left: 3px dotted #969A98; background: #FAFAF8; }
+.patient-title { font-size: 13px; color: #27372F; font-weight: 650; overflow-wrap: anywhere; }
+.patient-doctor { font-size: 12px; color: #6A746F; margin-top: 4px; }
+.patient-time { font-size: 13px; color: #35443C; font-weight: 650; white-space: nowrap; }
+.patient-time small { display: block; margin-top: 4px; font-size: 10px; color: #6C785D; }
+.patient-status { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 650; border-radius: 5px; padding: 4px 7px; background: #F0F2EE; color: #4D5C50; white-space: nowrap; }
+.state-arrived .patient-status, .state-completed .patient-status { background: #E8EEE4; color: #435C42; }
+.state-no_show .patient-status { background: #F4EFE5; color: #78613E; }
+.state-cancelled .patient-status { color: #737875; background: #ECEEEC; }
+.status-pattern { width: 7px; height: 7px; border: 1px solid currentColor; border-radius: 50%; }
+.state-arrived .status-pattern { background: currentColor; }
+.state-completed .status-pattern { border-radius: 1px; background: currentColor; }
+.state-no_show .status-pattern { border-style: dashed; border-radius: 0; }
+.state-cancelled .status-pattern { height: 1px; border-radius: 0; }
+.patient-source { font-size: 10px; color: #7A827B; margin-top: 5px; }
+.patient-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+.patient-actions button { border: 1px solid #D5DCD4; background: #fff; border-radius: 6px; padding: 7px 9px; font: inherit; font-size: 11px; color: #526054; cursor: pointer; }
+.patient-actions button.main-action { background: #425A49; color: white; border-color: #425A49; }
+.patient-actions button:hover { filter: brightness(.95); }
+.patient-actions button:disabled { opacity: .5; cursor: wait; }
+.previous-filter { font-size: 12px; color: #687268; display: flex; align-items: center; gap: 8px; }
+.previous-filter select { border: 1px solid #D5DCD4; border-radius: 7px; padding: 7px 9px; background: white; color: #425448; font: inherit; }
+@media (max-width: 1150px) { .list-labels, .patient-row { grid-template-columns: minmax(140px, 1.3fr) 75px 100px; } .list-labels span:last-child { display: none; } .patient-actions { grid-column: 1 / -1; } }
+@media (max-width: 650px) { .appointment-panel { padding: 12px; } .list-labels { display: none; } .patient-row { grid-template-columns: minmax(100px, 1fr) auto; gap: 10px; } .patient-actions { grid-column: 2; grid-row: 2; } }
+
+/* Match the existing blue clinic theme and explicit outcome colours. */
+.appointment-panel { border-color: var(--border); background: var(--card-bg); }
+.list-heading h2, .patient-title, .patient-time { color: var(--text-dark); }
+.list-heading p, .patient-doctor, .previous-filter { color: var(--text-muted); }
+.list-count { background: var(--blue-soft); color: #1D4ED8; }
+.list-labels { background: #F0F5FC; color: #526B87; }
+.patient-list { scrollbar-color: #A5BDDA #F1F5FA; }
+.patient-list:focus-visible { outline-color: var(--blue); }
+.patient-row { border-bottom-color: var(--border); border-left: 3px solid #B4CBE8; background: var(--card-bg); }
+.patient-row.state-arrived { background: #EFF6FF; border-left: 4px double #3B82F6; }
+.patient-row.state-completed { background: #F0FDF4; border-left: 3px solid #22A45A; }
+.patient-row.state-no_show { background: #F7F8FA; border-left: 3px dashed #9099A6; }
+.patient-row.state-cancelled { background: #FFF4F4; border-left: 3px dotted #DC5555; }
+.patient-status { background: #EAF2FE; color: #1D4ED8; }
+.state-arrived .patient-status { background: #DBEAFE; color: #1D4ED8; }
+.state-completed .patient-status { background: #DCFCE7; color: #166534; }
+.state-no_show .patient-status { background: #E9ECF0; color: #576271; }
+.state-cancelled .patient-status { background: #FEE2E2; color: #B91C1C; }
+.patient-time small { color: #2563EB; }
+.patient-source { color: var(--text-muted); }
+.patient-actions button { border-color: var(--border); color: #526B87; }
+.patient-actions button.main-action { background: var(--blue); border-color: var(--blue); color: #fff; }
+.previous-filter select { border-color: var(--border); color: var(--text-dark); }
+.upcoming-day { padding: 10px 12px 4px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted); }
+.stat-card .note { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+</style>
+<link rel="stylesheet" href="clinic-theme.css">
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="logo">N</div><span>Nirva</span></div>
+    <nav>
+      <a href="dashboard-light.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a href="calendar.html" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Calendar
+      </a>
+      <a href="callback-requests.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 2 16 8 22 8"/><line x1="22" y1="2" x2="16" y2="8"/><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg>
+        Callback Requests
+      </a>
+      <a href="patients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Patients
+      </a>
+      <a href="activity-history.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15v-4M12 15V7M17 15v-7"/></svg>
+        Activity History
+      </a>
+    </nav>
+    <div class="bottom">
+      <a href="doctor-schedule.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Doctor Schedule
+      </a>
+      <a href="doctor-leave.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/></svg>
+        Doctor Leave
+      </a>
+      <a href="clinic-info.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        Clinic Info
+      </a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        Search patients, appointments...
+      </div>
+      <div class="right">
+        <div class="bell">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="dot"></span>
+        </div>
+        <div class="user">
+          <div class="avatar" id="userAvatar">NH</div>
+          <div class="info"><div id="userDisplayName">Loading...</div><div id="userEmail" style="font-size:12px;color:var(--text-muted);"></div></div>
+        </div>
+        <button id="logoutBtn" style="font-size:12.5px;font-family:inherit;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background-color:var(--bg);color:var(--text-muted);cursor:pointer;">Log out</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div class="greeting">
+        <div>
+          <h1>Calendar</h1>
+          <p>Pick a date to see that day's schedule.</p>
+        </div>
+        <div class="right-actions">
+          <div class="date-nav">
+            <button id="prevDayBtn" title="Previous day">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <input type="date" id="datePicker">
+            <button id="nextDayBtn" title="Next day">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+            <button class="today-btn" id="todayBtn">Today</button>
+          </div>
+          <button class="btn-primary" id="addBookingBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            Add Booking
+          </button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card c-blue"><div class="label">Total</div><div class="value" id="statTotal">—</div><div class="note" id="statTotalNote"></div></div>
+        <div class="stat-card c-amber"><div class="label">Confirmed</div><div class="value" id="statConfirmed">—</div></div>
+        <div class="stat-card c-purple"><div class="label">Arrived</div><div class="value" id="statArrived">—</div></div>
+        <div class="stat-card c-green"><div class="label">Completed</div><div class="value" id="statCompleted">—</div></div>
+      </div>
+
+      <div class="board-header">
+        <h2 id="boardTitle">Schedule</h2>
+        <span class="subtitle" id="boardSubtitle">Loading...</span>
+      </div>
+
+      <section class="appointment-panel">
+        <div class="list-heading"><div><h2>Active Appointments <span id="activeCount" class="list-count">0</span></h2><p>Expected and arrived patients on this day, by appointment time</p></div></div>
+        <div class="list-labels"><span>Patient &amp; doctor</span><span>Time</span><span>Status</span><span>Actions</span></div>
+        <div id="activeAppointments" class="patient-list" role="region" aria-label="Active appointments" tabindex="0"></div>
+      </section>
+
+      <section class="appointment-panel">
+        <div class="list-heading"><div><h2>Previous Appointments <span id="previousCount" class="list-count">0</span></h2><p>Completed, no-show and cancelled appointments on this day</p></div>
+          <label class="previous-filter">Show <select id="previousFilter" aria-label="Filter previous appointments"><option value="">All outcomes</option><option value="completed">Completed</option><option value="no_show">No-show</option><option value="cancelled">Cancelled</option></select></label>
+        </div>
+        <div class="list-labels"><span>Patient &amp; doctor</span><span>Time</span><span>Status</span><span>Actions</span></div>
+        <div id="previousAppointments" class="patient-list" role="region" aria-label="Previous appointments" tabindex="0"></div>
+      </section>
+
+      <section class="appointment-panel">
+        <div class="list-heading"><div><h2>Upcoming Appointments <span id="upcomingCount" class="list-count">0</span></h2><p id="upcomingHint">The next 14 days after this date</p></div></div>
+        <div class="list-labels"><span>Patient &amp; doctor</span><span>Time</span><span>Status</span><span>Actions</span></div>
+        <div id="upcomingAppointments" class="patient-list" role="region" aria-label="Upcoming appointments" tabindex="0"></div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" style="display:none;">
+  <div class="modal">
+    <h2>Add Booking</h2>
+    <p class="hint">New patient? Enter their name and full international phone number (for example, +919876543210). The secure booking service creates or matches their record.</p>
+    <div class="modal-error" id="modalError"></div>
+    <form id="addBookingForm">
+      <div class="form-field"><label>Patient Name</label><input type="text" id="fPatientName" required></div>
+      <div class="form-field"><label>Patient Phone</label><input type="tel" id="fPatientPhone" inputmode="tel" autocomplete="tel" placeholder="+919876543210" pattern="\+[1-9][0-9]{6,14}" title="Use international format, for example +919876543210" required></div>
+      <div class="form-field"><label>Doctor</label><select id="fDoctor" required></select></div>
+      <div class="form-field"><label>Appointment Time</label><input type="datetime-local" id="fTime" required></div>
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="modalCancelBtn">Cancel</button>
+        <button type="submit" class="submit">Add Booking</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Confirm Modal (reused for anything consequential, e.g. Cancel) -->
+<div class="modal-overlay" id="confirmOverlay" style="display:none;">
+  <div class="modal" style="max-width: 360px;">
+    <h2 id="confirmTitle">Are you sure?</h2>
+    <p class="hint" id="confirmMessage" style="margin-bottom: 20px;"></p>
+    <div class="modal-actions">
+      <button type="button" class="cancel" id="confirmCancelBtn">No, go back</button>
+      <button type="button" class="submit" id="confirmYesBtn" style="background-color: var(--red);">Yes, confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="config.js?v=20261122"></script>
+<script src="shared-ui.js?v=20261127"></script>
+<script>
+  // Never interpolate patient or clinic data into HTML without encoding it.
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function isE164Phone(value) {
+    return /^\+[1-9][0-9]{6,14}$/.test(String(value || ""));
+  }
+
+  function newIdempotencyKey() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
+    if (window.crypto && typeof window.crypto.getRandomValues === "function") {
+      var bytes = window.crypto.getRandomValues(new Uint8Array(16));
+      bytes[6] = (bytes[6] & 15) | 64;
+      bytes[8] = (bytes[8] & 63) | 128;
+      var hex = Array.from(bytes, function (byte) { return byte.toString(16).padStart(2, "0"); }).join("");
+      return hex.slice(0, 8) + "-" + hex.slice(8, 12) + "-" + hex.slice(12, 16) + "-" + hex.slice(16, 20) + "-" + hex.slice(20);
+    }
+    return null;
+  }
+
+  function confirmDialog(message) {
+    return new Promise(function (resolve) {
+      document.getElementById("confirmMessage").textContent = message;
+      var overlay = document.getElementById("confirmOverlay");
+      var yesBtn = document.getElementById("confirmYesBtn");
+      var noBtn = document.getElementById("confirmCancelBtn");
+      overlay.style.display = "flex";
+
+      function cleanup(result) {
+        overlay.style.display = "none";
+        yesBtn.removeEventListener("click", onYes);
+        noBtn.removeEventListener("click", onNo);
+        resolve(result);
+      }
+      function onYes() { cleanup(true); }
+      function onNo() { cleanup(false); }
+      yesBtn.addEventListener("click", onYes);
+      noBtn.addEventListener("click", onNo);
+    });
+  }
+
+  var currentSession = null;
+  var isDoctorView = false; // set true in init() when the logged-in account has role='doctor' -- doctors can view bookings but never edit them (also enforced at the database level via RLS, this just keeps the UI from offering an action that will fail).
+  async function requireSession() {
+    var { data } = await supabaseClient.auth.getSession();
+    if (!data || !data.session) {
+      window.location.href = "login.html";
+      return null;
+    }
+    return data.session;
+  }
+  document.getElementById("logoutBtn").addEventListener("click", async function () {
+    await recordLogout();
+    await supabaseClient.auth.signOut();
+    window.location.href = "login.html";
+  });
+
+  // ---------- Selected-date state ----------
+  function toDateInputValue(d) {
+    var pad = function (n) { return String(n).padStart(2, "0"); };
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+  var selectedDate = new Date();
+  selectedDate.setHours(0, 0, 0, 0);
+  (function () {
+    var m = /[?&]date=(\d{4})-(\d{2})-(\d{2})/.exec(location.search);
+    if (m) selectedDate = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  })();
+
+  function startOfSelected() { var d = new Date(selectedDate); d.setHours(0, 0, 0, 0); return d; }
+  function startOfNextDay() { var d = startOfSelected(); d.setDate(d.getDate() + 1); return d; }
+  function isToday() {
+    var t = new Date(); t.setHours(0, 0, 0, 0);
+    return t.getTime() === startOfSelected().getTime();
+  }
+  function formatTime(iso) {
+    return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  }
+
+  var datePicker = document.getElementById("datePicker");
+  datePicker.value = toDateInputValue(selectedDate);
+  datePicker.addEventListener("change", function () {
+    if (!datePicker.value) return;
+    var parts = datePicker.value.split("-");
+    selectedDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    loadBoard();
+  });
+  document.getElementById("prevDayBtn").addEventListener("click", function () {
+    selectedDate.setDate(selectedDate.getDate() - 1);
+    datePicker.value = toDateInputValue(selectedDate);
+    loadBoard();
+  });
+  document.getElementById("nextDayBtn").addEventListener("click", function () {
+    selectedDate.setDate(selectedDate.getDate() + 1);
+    datePicker.value = toDateInputValue(selectedDate);
+    loadBoard();
+  });
+  document.getElementById("todayBtn").addEventListener("click", function () {
+    selectedDate = new Date();
+    selectedDate.setHours(0, 0, 0, 0);
+    datePicker.value = toDateInputValue(selectedDate);
+    loadBoard();
+  });
+
+  // ---------- Source badge ----------
+  function sourceBadge(source) {
+    if (source === "ai_agent") {
+      return '<span class="source-badge ai_agent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16h.01M16 16h.01"/></svg>AI Agent</span>';
+    }
+    return '<span class="source-badge staff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a6 6 0 0 1 12 0v2"/></svg>Staff</span>';
+  }
+
+  var statusLabels = { confirmed: "Expected", arrived: "Arrived", completed: "Completed", no_show: "No-show", cancelled: "Cancelled" };
+
+  // Same row layout as the Dashboard schedule.
+  function bookingCard(b, isNextUp, showDate) {
+    var patientName = (b.patients && b.patients.name) || b.patient_name_snapshot || "Unknown patient";
+    var doctorName = (b.doctors && b.doctors.name) || "Unknown doctor";
+    function actionButton(action, label, primary) {
+      return '<button' + (primary ? ' class="main-action"' : '') + ' data-action="' + action + '" data-id="' + escapeHtml(b.id) + '">' + label + '</button>';
+    }
+    var actions = "";
+    if (!isDoctorView) {
+      actions = b.status === "confirmed"
+        ? (showDate ? "" : actionButton("arrived", "Mark Arrived", true) + actionButton("no_show", "No-show")) + actionButton("cancelled", "Cancel")
+        : b.status === "arrived"
+        ? actionButton("completed", "Complete", true) + actionButton("confirmed", "Undo arrival")
+        : actionButton(b.status === "completed" ? "arrived" : "confirmed", "Undo");
+    }
+    var when = showDate
+      ? escapeHtml(new Date(b.appointment_time).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })) + '<small>' + formatTime(b.appointment_time) + '</small>'
+      : formatTime(b.appointment_time) + (isNextUp ? '<small>Next up</small>' : '');
+    return '<article class="patient-row state-' + escapeHtml(b.status) + '">' +
+      '<div class="patient-details"><div class="patient-title">' + escapeHtml(patientName) + '</div><div class="patient-doctor">' + escapeHtml(doctorName) + '</div></div>' +
+      '<div class="patient-time">' + when + '</div>' +
+      '<div><span class="patient-status"><span aria-hidden="true" class="status-pattern"></span>' + escapeHtml(statusLabels[b.status] || b.status) + '</span><div class="patient-source">' + (b.source === "ai_agent" ? "AI booking" : "Staff booking") + '</div></div>' +
+      '<div class="patient-actions">' + actions + '</div></article>';
+  }
+
+  var currentBookings = [];
+  var upcomingBookings = [];
+  var previousFilter = "";
+  var bookingSelect = "*, patients(name, phone), doctors(name, specialty)";
+
+  async function loadBoard() {
+    var subtitle = document.getElementById("boardSubtitle");
+    var title = document.getElementById("boardTitle");
+    title.textContent = selectedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) + (isToday() ? " (Today)" : "");
+    var upcomingEnd = startOfNextDay();
+    upcomingEnd.setDate(upcomingEnd.getDate() + 14);
+    try { history.replaceState(null, "", "calendar.html?date=" + toDateInputValue(selectedDate)); } catch (e) {}
+
+    // The selected day and the next 14 days load together.
+    var results = await Promise.all([
+      supabaseClient.from("bookings").select(bookingSelect)
+        .gte("appointment_time", startOfSelected().toISOString())
+        .lt("appointment_time", startOfNextDay().toISOString())
+        .neq("status", "rescheduled")
+        .order("appointment_time", { ascending: true }),
+      supabaseClient.from("bookings").select(bookingSelect)
+        .gte("appointment_time", startOfNextDay().toISOString())
+        .lt("appointment_time", upcomingEnd.toISOString())
+        .in("status", ["confirmed", "arrived"])
+        .order("appointment_time", { ascending: true })
+        .limit(200)
+    ]);
+
+    if (results[0].error) {
+      subtitle.textContent = "Could not load this day's schedule.";
+      return;
+    }
+
+    currentBookings = results[0].data || [];
+    upcomingBookings = results[1].error ? [] : (results[1].data || []);
+    renderBoard();
+  }
+
+  function renderBoard() {
+    var subtitle = document.getElementById("boardSubtitle");
+    var confirmed = currentBookings.filter(function (b) { return b.status === "confirmed"; });
+    var arrived = currentBookings.filter(function (b) { return b.status === "arrived"; });
+    var completed = currentBookings.filter(function (b) { return b.status === "completed"; });
+    var noShow = currentBookings.filter(function (b) { return b.status === "no_show"; });
+    var cancelled = currentBookings.filter(function (b) { return b.status === "cancelled"; });
+    var booked = currentBookings.length - cancelled.length;
+
+    subtitle.textContent = booked + " appointment" + (booked === 1 ? "" : "s") + (cancelled.length ? " · " + cancelled.length + " cancelled" : "");
+
+    var nextUpId = null;
+    if (isToday()) {
+      var now = new Date();
+      var upcomingConfirmed = confirmed.filter(function (b) { return new Date(b.appointment_time) >= now; });
+      if (upcomingConfirmed.length > 0) nextUpId = upcomingConfirmed[0].id;
+    }
+
+    var active = currentBookings.filter(function (b) { return b.status === "confirmed" || b.status === "arrived"; });
+    var previous = currentBookings.filter(function (b) { return ["completed", "no_show", "cancelled"].indexOf(b.status) !== -1; });
+    var previousVisible = previous.filter(function (b) { return !previousFilter || b.status === previousFilter; });
+
+    document.getElementById("activeCount").textContent = active.length;
+    document.getElementById("previousCount").textContent = previousFilter ? previousVisible.length + " / " + previous.length : previous.length;
+    document.getElementById("upcomingCount").textContent = upcomingBookings.length;
+    document.getElementById("activeAppointments").innerHTML = active.length
+      ? active.map(function (b) { return bookingCard(b, b.id === nextUpId, false); }).join("")
+      : '<div class="empty-column">No active appointments on this day.</div>';
+    document.getElementById("previousAppointments").innerHTML = previousVisible.length
+      ? previousVisible.map(function (b) { return bookingCard(b, false, false); }).join("")
+      : '<div class="empty-column">No previous appointments on this day.</div>';
+    document.getElementById("upcomingHint").textContent = "Expected appointments in the 14 days after " + selectedDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+    document.getElementById("upcomingAppointments").innerHTML = upcomingBookings.length
+      ? upcomingBookings.map(function (b) { return bookingCard(b, false, true); }).join("")
+      : '<div class="empty-column">No upcoming appointments in the next 14 days.</div>';
+
+    // Total = every appointment on this day except cancelled ones, so the
+    // boxes add up: Total = Confirmed + Arrived + Completed + No-show.
+    document.getElementById("statTotal").textContent = booked;
+    document.getElementById("statConfirmed").textContent = confirmed.length;
+    document.getElementById("statArrived").textContent = arrived.length;
+    document.getElementById("statCompleted").textContent = completed.length;
+    var note = document.getElementById("statTotalNote");
+    if (note) note.textContent = [noShow.length ? noShow.length + " no-show" : "", cancelled.length ? cancelled.length + " cancelled (not counted)" : ""].filter(Boolean).join(" · ");
+    requestAnimationFrame(sizeAppointmentLists);
+  }
+
+  function sizeAppointmentLists() {
+    ["activeAppointments", "previousAppointments", "upcomingAppointments"].forEach(function (id) {
+      var list = document.getElementById(id);
+      if (!list) return;
+      var rows = Array.from(list.children);
+      list.style.maxHeight = "none";
+      if (rows.length > 6) {
+        var top = rows[0].getBoundingClientRect().top;
+        var bottom = rows[5].getBoundingClientRect().bottom;
+        list.style.maxHeight = Math.ceil(bottom - top) + "px";
+      }
+    });
+  }
+  window.addEventListener("resize", sizeAppointmentLists);
+
+  document.getElementById("previousFilter").addEventListener("change", function (event) {
+    previousFilter = event.target.value;
+    renderBoard();
+  });
+
+  // Keep one request ID per action until the server confirms it. This makes a
+  // retry after a lost response safe: the protected service returns the first
+  // completed operation instead of applying the status change twice.
+  var staffActionRequestIds = {};
+
+  function staffActionError(code) {
+    var messages = {
+      booking_not_found: "This booking is no longer available.",
+      invalid_action: "That booking action is not available.",
+      invalid_transition: "This booking has already changed. Refreshing the schedule may help.",
+      unauthorized: "Your account is not allowed to update bookings."
+    };
+    return messages[code] || "The booking could not be updated. Please try again.";
+  }
+
+  async function updateBookingStatus(bookingId, action) {
+    var requestKey = bookingId + ":" + action;
+    if (!staffActionRequestIds[requestKey]) staffActionRequestIds[requestKey] = newIdempotencyKey();
+    var { data, error } = await supabaseClient.functions.invoke("staff-appointment-action", {
+      body: { booking_id: bookingId, action: action, idempotency_key: staffActionRequestIds[requestKey] }
+    });
+    if (error) throw new Error("The booking could not be updated. Please try again.");
+    if (!data || data.success !== true) throw new Error(staffActionError(data && data.error_code));
+    delete staffActionRequestIds[requestKey];
+  }
+
+  document.querySelector(".content").addEventListener("click", async function (e) {
+    var btn = e.target.closest("button[data-action]");
+    if (!btn) return;
+    var id = btn.getAttribute("data-id");
+    var newStatus = btn.getAttribute("data-action");
+    btn.disabled = true;
+
+    if (newStatus === "cancelled" && !(await confirmDialog("Cancel this booking? You can undo this afterward from Previous Appointments."))) {
+      btn.disabled = false;
+      return;
+    }
+
+    try {
+      await updateBookingStatus(id, newStatus);
+    } catch (err) {
+      alert(err.message || "Could not update booking. Please try again.");
+      btn.disabled = false;
+      return;
+    }
+    loadBoard();
+  });
+
+  // ---------- Add Booking modal (defaults to the selected date) ----------
+  var overlay = document.getElementById("modalOverlay");
+  var modalError = document.getElementById("modalError");
+  // Keep this through a retry so a lost response cannot produce a duplicate.
+  var bookingRequestId = null;
+
+  document.getElementById("addBookingBtn").addEventListener("click", function () {
+    modalError.style.display = "none";
+    document.getElementById("addBookingForm").reset();
+    bookingRequestId = newIdempotencyKey();
+    var base = new Date(selectedDate);
+    if (isToday()) {
+      var now = new Date();
+      base = now;
+      base.setMinutes(Math.ceil(base.getMinutes() / 15) * 15, 0, 0);
+    } else {
+      base.setHours(9, 0, 0, 0);
+    }
+    var pad = function (n) { return String(n).padStart(2, "0"); };
+    var localValue = base.getFullYear() + "-" + pad(base.getMonth() + 1) + "-" + pad(base.getDate()) + "T" + pad(base.getHours()) + ":" + pad(base.getMinutes());
+    document.getElementById("fTime").value = localValue;
+    overlay.style.display = "flex";
+  });
+  document.getElementById("modalCancelBtn").addEventListener("click", function () {
+    overlay.style.display = "none";
+    bookingRequestId = null;
+  });
+
+  var doctorById = {};
+
+  function minutesFromTime(value) {
+    var parts = String(value || "").slice(0, 5).split(":");
+    return Number(parts[0]) * 60 + Number(parts[1]);
+  }
+
+  function validateStaffBookingTime(doctorId, timeValue) {
+    var doctor = doctorById[doctorId];
+    var appointment = new Date(timeValue);
+    if (!doctor || isNaN(appointment.getTime())) return "Choose a doctor and a valid appointment time.";
+    if (appointment.getMinutes() % 15 !== 0) return "Appointments must start on a 15-minute slot.";
+    var days = String(doctor.working_days || "").split(",").map(function (d) { return Number(d.trim()); }).filter(function (d) { return !isNaN(d); });
+    if (days.length && days.indexOf(appointment.getDay()) === -1) return doctor.name + " is not scheduled to work on that day.";
+    var slotStart = appointment.getHours() * 60 + appointment.getMinutes();
+    var startsAt = minutesFromTime(doctor.start_time);
+    var endsAt = minutesFromTime(doctor.end_time);
+    if (!isFinite(startsAt) || !isFinite(endsAt)) return "This doctor's working hours are not configured yet.";
+    if (slotStart < startsAt || slotStart + 15 > endsAt) return doctor.name + " is available only from " + String(doctor.start_time).slice(0, 5) + " to " + String(doctor.end_time).slice(0, 5) + ".";
+    return null;
+  }
+
+  async function loadDoctorsIntoSelect() {
+    var select = document.getElementById("fDoctor");
+    var { data, error } = await supabaseClient.from("doctors").select("id, name, specialty, start_time, end_time, working_days").eq("active", true).order("name");
+    if (error || !data) return;
+    doctorById = Object.fromEntries(data.map(function (d) { return [d.id, d]; }));
+    select.innerHTML = data.map(function (d) {
+      return '<option value="' + escapeHtml(d.id) + '">' + escapeHtml(d.name) + (d.specialty ? " — " + escapeHtml(d.specialty) : "") + "</option>";
+    }).join("");
+  }
+
+  // The protected Edge Function owns patient identity matching, doctor-hours
+  // and leave checks, slot locking, audit events, and the database transaction.
+  async function createStaffBooking(payload) {
+    var { data, error } = await supabaseClient.functions.invoke("staff-book-appointment", {
+      body: payload
+    });
+    if (error) throw error;
+    // Backend diagnostics remain in server logs; the browser gets only a safe,
+    // actionable message so internal details cannot be exposed to visitors.
+    if (!data || data.success !== true) throw new Error("The booking could not be saved. Please check the details and try again.");
+    return data;
+  }
+
+  document.getElementById("addBookingForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    modalError.style.display = "none";
+    var submitBtn = e.target.querySelector(".submit");
+    submitBtn.disabled = true;
+
+    var name = document.getElementById("fPatientName").value.trim();
+    var phone = document.getElementById("fPatientPhone").value.trim();
+    var doctorId = document.getElementById("fDoctor").value;
+    var timeValue = document.getElementById("fTime").value;
+
+    try {
+      var scheduleError = validateStaffBookingTime(doctorId, timeValue);
+      if (scheduleError) throw new Error(scheduleError);
+      if (!isE164Phone(phone)) throw new Error("Enter the phone number in international format, for example +919876543210.");
+      if (!bookingRequestId) throw new Error("This browser cannot create a secure booking request. Please use a current browser and try again.");
+      await createStaffBooking({
+        patient_name: name,
+        phone_number: phone,
+        doctor_name: doctorById[doctorId].name,
+        // Send the clinic wall-clock value; the booking service reads it as IST.
+        appointment_datetime: timeValue,
+        idempotency_key: bookingRequestId
+      });
+
+      overlay.style.display = "none";
+      bookingRequestId = null;
+      loadBoard();
+    } catch (err) {
+      modalError.textContent = "The booking could not be saved. Please check the details and try again.";
+      modalError.style.display = "block";
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+    function initials(name) {
+    var parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "NH";
+    return (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
+  }
+
+  async function loadIdentityBadge(session) {
+    document.getElementById("userEmail").textContent = session.user.email;
+
+    var { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("role, full_name")
+      .eq("id", session.user.id)
+      .maybeSingle();
+
+    var displayName = "Team";
+    var role = profile && profile.role;
+
+    if (role === "doctor") {
+      var { data: doc } = await supabaseClient
+        .from("doctors")
+        .select("name")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      displayName = (doc && doc.name) || (profile && profile.full_name) || "Doctor";
+    } else if (profile && profile.full_name) {
+      displayName = profile.full_name;
+    }
+
+    document.getElementById("userDisplayName").textContent = displayName;
+    document.getElementById("userAvatar").textContent = initials(displayName === "Team" ? "Nirva Hospital" : displayName);
+    return role;
+  }
+
+(async function init() {
+    var session = await requireSession();
+    if (!session) return;
+    currentSession = session;
+    // Load the profile, doctors and schedule at the same time.
+    loadDoctorsIntoSelect();
+    var boardLoad = loadBoard();
+    var userRole = await loadIdentityBadge(session);
+
+    isDoctorView = userRole === "doctor";
+    if (isDoctorView) {
+      var addBtn = document.getElementById("addBookingBtn");
+      if (addBtn) addBtn.style.display = "none";
+      await boardLoad;
+      renderBoard(); // redraw without staff buttons
+    }
+
+    // Live updates, with a once-a-minute refresh as a safety net.
+    supabaseClient.channel("calendar-bookings").on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, function () { loadBoard(); }).subscribe();
+    setInterval(loadBoard, 60000);
+  })();
+</script>
+
+</body>
+</html>

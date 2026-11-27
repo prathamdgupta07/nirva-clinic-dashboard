@@ -1,0 +1,47 @@
+{
+  "name": "save_callback_request",
+  "description": "Save a request for clinic staff to call the caller back, with their consent.",
+  "pre_call_message": "Let me note that for the staff.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "caller_name": {
+        "type": "string",
+        "description": "Caller's name"
+      },
+      "phone_number": {
+        "type": "string",
+        "description": "Best number to call back"
+      },
+      "reason": {
+        "type": "string",
+        "description": "Short reason"
+      },
+      "doctor_name": {
+        "type": "string",
+        "description": "Optional doctor name"
+      }
+    },
+    "required": [
+      "caller_name",
+      "phone_number",
+      "reason"
+    ]
+  },
+  "key": "custom_task",
+  "value": {
+    "method": "POST",
+    "url": "https://esvurkdwzcxtzimbpkwv.supabase.co/functions/v1/save-callback-request",
+    "param": {
+      "caller_name": "%(caller_name)s",
+      "phone_number": "%(phone_number)s",
+      "reason": "%(reason)s",
+      "doctor_name": "%(doctor_name)s"
+    },
+    "api_token": null,
+    "headers": {
+      "Content-Type": "application/json",
+      "x-webhook-secret": "PASTE_BOLNA_SECRET_HERE"
+    }
+  }
+}

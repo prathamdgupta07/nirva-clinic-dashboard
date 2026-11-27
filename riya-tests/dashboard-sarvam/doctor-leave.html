@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://wsqwgomduqehbtdiawcw.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<title>Nirva — Doctor Leave</title>
+<style>
+:root {
+  --bg: #F5F7FA; --sidebar-bg: #FFFFFF; --card-bg: #FFFFFF; --border: #EAEDF2;
+  --text-dark: #1A1F2B; --text-muted: #7C8493; --active-bg: #EEF2FF; --active-text: #4F46E5;
+  --blue: #3B82F6; --blue-soft: #EAF2FE; --green: #22C55E; --green-soft: #E9FBF0;
+  --red: #EF4444; --red-soft: #FDECEC; --purple: #8B5CF6; --purple-soft: #F3EEFE;
+  --amber: #F59E0B; --amber-soft: #FEF6E7;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); color: var(--text-dark); }
+.app { display: flex; min-height: 100vh; }
+.sidebar { width: 240px; flex-shrink: 0; background-color: var(--sidebar-bg); border-right: 1px solid var(--border); padding: 22px 16px; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.sidebar .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 24px; }
+.sidebar .brand .logo { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--blue), var(--purple)); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 14px; }
+.sidebar .brand span { font-weight: 700; font-size: 16px; }
+.sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+.sidebar nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: var(--text-muted); font-size: 14px; font-weight: 500; transition: background-color 0.15s ease, color 0.15s ease; }
+.sidebar nav a:hover { background-color: #F5F6FA; color: var(--text-dark); }
+.sidebar nav a.active { background-color: var(--active-bg); color: var(--active-text); font-weight: 600; }
+.sidebar nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
+.sidebar .bottom { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+.sidebar .bottom a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: var(--text-muted); font-size: 13px; font-weight: 500; }
+.sidebar .bottom a svg { width: 16px; height: 16px; flex-shrink: 0; }
+.sidebar .bottom a.active { background-color: var(--active-bg); color: var(--active-text); font-weight: 600; }
+.main { flex: 1; min-width: 0; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; background-color: var(--card-bg); border-bottom: 1px solid var(--border); }
+.topbar .search { display: flex; align-items: center; gap: 10px; background-color: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 9px 14px; width: 320px; color: var(--text-muted); font-size: 13.5px; }
+.topbar .search svg { width: 16px; height: 16px; flex-shrink: 0; }
+.topbar .right { display: flex; align-items: center; gap: 18px; }
+.topbar .bell { width: 36px; height: 36px; border-radius: 50%; background-color: var(--bg); display: flex; align-items: center; justify-content: center; color: var(--text-muted); position: relative; }
+.topbar .bell svg { width: 17px; height: 17px; }
+.topbar .bell .dot { position: absolute; top: 8px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background-color: var(--red); border: 1.5px solid white; }
+.topbar .user { display: flex; align-items: center; gap: 10px; }
+.topbar .user .avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--purple)); color: white; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.topbar .user .info div:first-child { font-size: 13.5px; font-weight: 600; }
+.topbar .user .info div:last-child { font-size: 12px; color: var(--text-muted); }
+.content { padding: 28px 32px; max-width: 1280px; margin: 0 auto; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+.page-header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+.page-header p { margin: 0; font-size: 13.5px; color: var(--text-muted); }
+.card { background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+.card-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.card-header h2 { font-size: 15.5px; font-weight: 700; margin: 0; }
+.card-header .subtitle { font-size: 12.5px; color: var(--text-muted); }
+table { width: 100%; border-collapse: collapse; }
+thead th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+tbody td { padding: 12px 10px; font-size: 13.5px; border-bottom: 1px solid var(--border); }
+tbody tr:last-child td { border-bottom: none; }
+.empty-note { font-size: 13px; color: var(--text-muted); padding: 10px 2px; }
+.pill { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; display: inline-block; }
+.pill.upcoming { background-color: var(--amber-soft); color: #92660A; }
+.pill.past { background-color: var(--bg); color: var(--text-muted); }
+.leave-form { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1.6fr auto; gap: 12px; align-items: end; }
+.leave-form .form-field { display: flex; flex-direction: column; gap: 6px; }
+.leave-form .form-field label { font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+.leave-form .form-field select,
+.leave-form .form-field input { border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13.5px; color: var(--text-dark); background-color: var(--bg); font-family: inherit; width: 100%; }
+.btn-submit { padding: 10px 16px; border: none; border-radius: 8px; background-color: var(--blue); color: white; font-size: 13.5px; font-weight: 700; font-family: inherit; cursor: pointer; white-space: nowrap; }
+.btn-submit:hover { background-color: #2f6fe0; }
+.btn-submit:disabled { opacity: 0.6; cursor: default; }
+.form-note { font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+.form-error { font-size: 12.5px; color: #B91C1C; margin-top: 10px; display: none; }
+.form-error.show { display: block; }
+.leave-edit-overlay { position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(20,33,50,.45); }
+.leave-edit-dialog { width:min(460px,100%); background:var(--card-bg); border-radius:14px; padding:22px; box-shadow:0 18px 50px rgba(18,42,66,.22); }
+.leave-edit-dialog h2 { margin:0 0 6px; font-size:18px; }.leave-edit-dialog p { margin:0 0 16px; font-size:13px; color:var(--text-muted); }
+.leave-edit-dialog .form-field { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }.leave-edit-dialog label { font-size:12.5px; font-weight:600; color:var(--text-muted); }
+.leave-edit-dialog input { border:1px solid var(--border); border-radius:8px; padding:10px 12px; font:inherit; }.leave-edit-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+.form-success { font-size: 12.5px; color: #15803D; margin-top: 10px; display: none; }
+.form-success.show { display: block; }
+</style>
+<link rel="stylesheet" href="clinic-theme.css">
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="logo">N</div><span>Nirva</span></div>
+    <nav>
+      <a href="dashboard-light.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a href="calendar.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Calendar
+      </a>
+      <a href="callback-requests.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 2 16 8 22 8"/><line x1="22" y1="2" x2="16" y2="8"/><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.99.35 1.97.66 2.92a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.16-1.16a2 2 0 0 1 2.11-.45c.95.31 1.93.53 2.92.66A2 2 0 0 1 22 16.92z"/></svg>
+        Callback Requests
+      </a>
+      <a href="patients.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Patients
+      </a>
+      <a href="activity-history.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15v-4M12 15V7M17 15v-7"/></svg>
+        Activity History
+      </a>
+    </nav>
+    <div class="bottom">
+      <a href="doctor-schedule.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Doctor Schedule
+      </a>
+      <a href="doctor-leave.html" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/></svg>
+        Doctor Leave
+      </a>
+      <a href="clinic-info.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        Clinic Info
+      </a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        Search patients, calls, appointments...
+      </div>
+      <div class="right">
+        <div class="bell">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="dot"></span>
+        </div>
+        <div class="user">
+          <div class="avatar" id="userAvatar">NH</div>
+          <div class="info"><div id="userDisplayName">Loading...</div><div id="userEmail" style="font-size:12px;color:var(--text-muted);"></div></div>
+        </div>
+        <button id="logoutBtn" style="font-size:12.5px;font-family:inherit;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background-color:var(--bg);color:var(--text-muted);cursor:pointer;">Log out</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-header">
+        <div>
+          <h1>Doctor Leave</h1>
+          <p>Manage regular leave, clinic holidays and the doctors covering a holiday.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>Regular Leave</h2>
+          <span class="subtitle">The phone agent checks this automatically before offering a slot</span>
+        </div>
+        <form id="leaveForm" class="leave-form">
+          <div class="form-field">
+            <label>Doctor</label>
+            <select id="leaveDoctor" required></select>
+          </div>
+          <div class="form-field">
+            <label>Leave Start Date</label>
+            <input type="date" id="leaveStart" required>
+          </div>
+          <div class="form-field">
+            <label>Leave End Date</label>
+            <input type="date" id="leaveEnd" required>
+          </div>
+          <div class="form-field">
+            <label>Reason (optional)</label>
+            <input type="text" id="leaveReason" placeholder="e.g. Conference, personal leave">
+          </div>
+          <button type="submit" class="btn-submit" id="leaveSubmitBtn">Add Leave</button>
+        </form>
+        <div class="form-error" id="leaveError"></div>
+        <div class="form-success" id="leaveSuccess">Leave added.</div>
+        <p class="form-note">A doctor's login can only add leave for their own record — the database rejects anything else, even if submitted here.</p>
+
+        <table style="margin-top:16px;">
+          <thead>
+            <tr><th>Doctor</th><th>Dates</th><th>Reason</th><th>Recorded by</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody id="leaveBody"></tbody>
+        </table>
+        <p class="empty-note" id="leaveEmpty" style="display:none;">No leave recorded yet.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="leave-edit-overlay" id="leaveEditOverlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="leaveEditTitle">
+  <form class="leave-edit-dialog" id="leaveEditForm">
+    <h2 id="leaveEditTitle">Edit Doctor Leave</h2>
+    <p>Confirm your current password to change this leave record. The editor and timestamp are saved in Activity History.</p>
+    <input type="hidden" id="editLeaveId">
+    <div class="form-field"><label for="editLeaveStart">Leave Start Date</label><input id="editLeaveStart" type="date" required></div>
+    <div class="form-field"><label for="editLeaveEnd">Leave End Date</label><input id="editLeaveEnd" type="date" required></div>
+    <div class="form-field"><label for="editLeaveReason">Reason (optional)</label><input id="editLeaveReason" type="text" maxlength="500"></div>
+    <div class="form-field"><label for="editLeavePassword">Current password</label><input id="editLeavePassword" type="password" autocomplete="current-password" required></div>
+    <div class="form-error" id="leaveEditError"></div>
+    <div class="leave-edit-actions"><button type="button" class="btn-small" id="leaveEditCancel">Cancel</button><button type="submit" class="btn-submit" id="leaveEditSubmit">Save Changes</button></div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" integrity="sha384-TcHRA3zBbn+Lexh5n+Oil4guNPOS3rjNDpGRAN46u/s/mB2IZ50ceC6TYDU2yvgK" crossorigin="anonymous"></script>
+<script src="config.js?v=20261122"></script>
+<script src="shared-ui.js?v=20261127"></script>
+<script>
+  async function requireSession() {
+    var { data } = await supabaseClient.auth.getSession();
+    if (!data || !data.session) {
+      window.location.href = "login.html";
+      return null;
+    }
+    return data.session;
+  }
+
+  document.getElementById("logoutBtn").addEventListener("click", async function () {
+    await recordLogout();
+    await supabaseClient.auth.signOut();
+    window.location.href = "login.html";
+  });
+
+  function formatDate(d) {
+    // d is "YYYY-MM-DD" from Postgres date
+    if (!d) return "—";
+    var parts = d.split("-");
+    var dt = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
+
+  var doctorSelect = document.getElementById("leaveDoctor");
+  var leaveForm = document.getElementById("leaveForm");
+  var leaveError = document.getElementById("leaveError");
+  var leaveSuccess = document.getElementById("leaveSuccess");
+  var leaveSubmitBtn = document.getElementById("leaveSubmitBtn");
+  var currentSession = null;
+  var currentRole = null;
+  var currentDoctorId = null;
+  var leaveRowsById = {};
+
+  function showLeaveError(message) {
+    leaveSuccess.classList.remove("show");
+    leaveError.textContent = message;
+    leaveError.classList.add("show");
+  }
+  function clearLeaveMessages() {
+    leaveError.classList.remove("show");
+    leaveSuccess.classList.remove("show");
+  }
+
+  async function loadDoctors() {
+    var { data, error } = await supabaseClient.from("doctors").select("id, name, active").eq("active", true).order("name");
+    if (error || !data) return;
+    doctorSelect.innerHTML = data.map(function (d) {
+      return '<option value="' + d.id + '">' + d.name + "</option>";
+    }).join("");
+  }
+
+  async function loadLeave() {
+    var body = document.getElementById("leaveBody");
+    var empty = document.getElementById("leaveEmpty");
+
+    var { data, error } = await supabaseClient
+      .from("doctor_leave")
+      .select("id, doctor_id, leave_start_date, leave_end_date, reason, created_by, created_at, updated_by, updated_at, doctors(name)")
+      .order("leave_start_date", { ascending: false })
+      .limit(30);
+
+    if (error || !data || data.length === 0) {
+      body.innerHTML = "";
+      empty.style.display = "block";
+      return;
+    }
+
+    empty.style.display = "none";
+    leaveRowsById = {};
+    data.forEach(function (row) { leaveRowsById[row.id] = row; });
+    var actorIds = data.map(function (row) { return [row.created_by, row.updated_by]; }).flat().filter(Boolean);
+    var actorNames = {};
+    if (actorIds.length) {
+      var profileResult = await supabaseClient.from("profiles").select("id, full_name").in("id", actorIds);
+      if (!profileResult.error) (profileResult.data || []).forEach(function (profile) { actorNames[profile.id] = profile.full_name; });
+    }
+    var auditByLeaveId = {};
+    var auditResult = await supabaseClient.from("activity_audit")
+      .select("entity_id, action, actor_name, created_at")
+      .eq("entity_type", "doctor_leave")
+      .in("entity_id", data.map(function (row) { return row.id; }))
+      .order("created_at", { ascending: true });
+    if (!auditResult.error) {
+      (auditResult.data || []).forEach(function (event) {
+        if (!auditByLeaveId[event.entity_id]) auditByLeaveId[event.entity_id] = {};
+        auditByLeaveId[event.entity_id][event.action] = event;
+      });
+    }
+    var todayStr = new Date().toISOString().slice(0, 10);
+    body.innerHTML = data.map(function (row) {
+      var doctorName = (row.doctors && row.doctors.name) || "Unknown doctor";
+      var audit = auditByLeaveId[row.id] || {};
+      var addedBy = (audit.doctor_leave_created && audit.doctor_leave_created.actor_name) || actorNames[row.created_by] || "System";
+      var recorded = "Added by " + addedBy + "<br><span style=\"font-size:12px;color:var(--text-muted)\">" + formatDateTime(row.created_at) + "</span>";
+      if (row.updated_at) recorded += "<br><span style=\"font-size:12px;color:var(--text-muted)\">Edited by " + ((audit.doctor_leave_updated && audit.doctor_leave_updated.actor_name) || actorNames[row.updated_by] || "Staff") + " · " + formatDateTime(row.updated_at) + "</span>";
+      var isPast = row.leave_end_date < todayStr;
+      var status = isPast
+        ? '<span class="pill past">Past</span>'
+        : '<span class="pill upcoming">Upcoming</span>';
+      var editControl = currentRole === "doctor" && row.doctor_id === currentDoctorId
+        ? '<button class="btn-small" data-edit-leave="' + row.id + '">Edit</button>'
+        : "";
+      return "<tr><td>" + escapeHtml(doctorName) + "</td><td>" + formatDate(row.leave_start_date) + " – " + formatDate(row.leave_end_date) + "</td><td>" + escapeHtml(row.reason || "—") + "</td><td>" + recorded + "</td><td>" + status + "</td><td>" + editControl + "</td></tr>";
+    }).join("");
+  }
+
+  function formatDateTime(value) {
+    return value ? new Date(value).toLocaleString("en-US", { month:"short", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit" }) : "—";
+  }
+  function escapeHtml(value) { return String(value == null ? "" : value).replace(/[&<>\"']/g, function (c) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+
+  var leaveEditOverlay = document.getElementById("leaveEditOverlay");
+  function closeLeaveEditor() { leaveEditOverlay.style.display = "none"; document.getElementById("leaveEditPassword").value = ""; }
+  document.getElementById("leaveEditCancel").addEventListener("click", closeLeaveEditor);
+  document.getElementById("leaveBody").addEventListener("click", function (event) {
+    var button = event.target.closest("button[data-edit-leave]"); if (!button) return;
+    var row = leaveRowsById[button.getAttribute("data-edit-leave")]; if (!row) return;
+    document.getElementById("editLeaveId").value = row.id;
+    document.getElementById("editLeaveStart").value = row.leave_start_date;
+    document.getElementById("editLeaveEnd").value = row.leave_end_date;
+    document.getElementById("editLeaveReason").value = row.reason || "";
+    document.getElementById("leaveEditError").classList.remove("show");
+    leaveEditOverlay.style.display = "flex";
+  });
+  document.getElementById("leaveEditForm").addEventListener("submit", async function (event) {
+    event.preventDefault();
+    var start = document.getElementById("editLeaveStart").value, end = document.getElementById("editLeaveEnd").value;
+    var error = document.getElementById("leaveEditError"), submit = document.getElementById("leaveEditSubmit");
+    error.classList.remove("show");
+    if (!start || !end || start > end) { error.textContent = "Enter a valid start and end date."; error.classList.add("show"); return; }
+    submit.disabled = true;
+    var result = await supabaseClient.functions.invoke("update-doctor-leave", { body: { leave_id: document.getElementById("editLeaveId").value, leave_start_date: start, leave_end_date: end, reason: document.getElementById("editLeaveReason").value.trim(), password: document.getElementById("editLeavePassword").value } });
+    submit.disabled = false;
+    if (result.error || !result.data || result.data.success !== true) {
+      error.textContent = result.data && result.data.error_code === "invalid_password" ? "The password is incorrect." : "This leave could not be updated. Please try again."; error.classList.add("show"); return;
+    }
+    closeLeaveEditor(); leaveSuccess.textContent = "Leave updated and recorded in Activity History."; leaveSuccess.classList.add("show"); loadLeave();
+  });
+
+
+  leaveForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    clearLeaveMessages();
+
+    var doctorId = doctorSelect.value;
+    var start = document.getElementById("leaveStart").value; // "YYYY-MM-DD"
+    var end = document.getElementById("leaveEnd").value;     // "YYYY-MM-DD"
+    var reason = document.getElementById("leaveReason").value.trim();
+
+    if (!doctorId) {
+      showLeaveError("Please select a doctor.");
+      return;
+    }
+    if (!start || !end) {
+      showLeaveError("Please enter both a start and end date.");
+      return;
+    }
+    if (start > end) {
+      showLeaveError("Start date must be on or before the end date.");
+      return;
+    }
+
+    leaveSubmitBtn.disabled = true;
+
+    var { error } = await supabaseClient.from("doctor_leave").insert({
+      doctor_id: doctorId,
+      leave_start_date: start,
+      leave_end_date: end,
+      reason: reason || null,
+      created_by: currentSession ? currentSession.user.id : null
+    });
+
+    leaveSubmitBtn.disabled = false;
+
+    if (error) {
+      showLeaveError("Could not add this leave. Please try again.");
+      return;
+    }
+
+    leaveForm.reset();
+    leaveSuccess.classList.add("show");
+    loadLeave();
+  });
+
+    function initials(name) {
+    var parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "NH";
+    return (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
+  }
+
+  async function loadIdentityBadge(session) {
+    document.getElementById("userEmail").textContent = session.user.email;
+
+    var { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("role, full_name")
+      .eq("id", session.user.id)
+      .maybeSingle();
+
+    var displayName = "Team";
+    var role = profile && profile.role;
+
+    if (role === "doctor") {
+      var { data: doc } = await supabaseClient
+        .from("doctors")
+        .select("id, name")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      currentDoctorId = doc && doc.id;
+      displayName = (doc && doc.name) || (profile && profile.full_name) || "Doctor";
+    } else if (profile && profile.full_name) {
+      displayName = profile.full_name;
+    }
+
+    document.getElementById("userDisplayName").textContent = displayName;
+    document.getElementById("userAvatar").textContent = initials(displayName === "Team" ? "Nirva Hospital" : displayName);
+    return role;
+  }
+
+(async function init() {
+    var session = await requireSession();
+    if (!session) return;
+    currentSession = session;
+    var userRole = await loadIdentityBadge(session);
+    currentRole = userRole;
+    if (currentRole !== "doctor") {
+      leaveForm.style.display = "none";
+      document.querySelector(".form-note").textContent = "Only the doctor linked to a leave record can add or edit it. Staff can view leave only.";
+    }
+    loadDoctors();
+    loadLeave();
+  })();
+</script>
+
+</body>
+</html>

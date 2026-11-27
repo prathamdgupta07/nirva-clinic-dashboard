@@ -1,0 +1,46 @@
+{
+  "name": "check_availability",
+  "description": "Check live free 15-minute slots for one doctor. Use before ever saying a slot is free. search_mode 'exact' for a given date, 'next' for earliest from today onward.",
+  "pre_call_message": "One moment, let me check.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "doctor_name": {
+        "type": "string",
+        "description": "Doctor's full name exactly as listed, e.g. 'Dr. Ananya Sharma'"
+      },
+      "date": {
+        "type": "string",
+        "description": "Date as YYYY-MM-DD. Required when search_mode is exact."
+      },
+      "time": {
+        "type": "string",
+        "description": "Optional wanted time as HH:mm, 24-hour"
+      },
+      "search_mode": {
+        "type": "string",
+        "description": "'exact' or 'next'"
+      }
+    },
+    "required": [
+      "doctor_name",
+      "search_mode"
+    ]
+  },
+  "key": "custom_task",
+  "value": {
+    "method": "POST",
+    "url": "https://esvurkdwzcxtzimbpkwv.supabase.co/functions/v1/check-availability",
+    "param": {
+      "doctor_name": "%(doctor_name)s",
+      "date": "%(date)s",
+      "time": "%(time)s",
+      "search_mode": "%(search_mode)s"
+    },
+    "api_token": null,
+    "headers": {
+      "Content-Type": "application/json",
+      "x-webhook-secret": "PASTE_BOLNA_SECRET_HERE"
+    }
+  }
+}
