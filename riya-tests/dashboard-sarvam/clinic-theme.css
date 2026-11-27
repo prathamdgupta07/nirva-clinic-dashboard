@@ -1,83 +1,502 @@
-/* Nirva clinic theme: calm clarity for staff-facing healthcare work.
-   Medical blue provides confidence, aqua softens the interface, and warm
-   amber/coral are reserved for attention and risk so they retain meaning. */
+/* Nirva clinic theme
+   Direction: a front desk that stays calm on a busy morning.
+   Quiet graphite surfaces, one clinical teal accent for the action or
+   figure that matters, status shown with small marks rather than colour
+   washes. This file loads after every page's own styles, so it only
+   restyles; markup, scripts and security headers are untouched.
+   Visual pass guided by unslop (Damir Sokolovsky, @heydamir, CC BY 4.0). */
+
 :root {
-  --bg: #f5f8fc;
-  --sidebar-bg: #ffffff;
+  /* Neutral ramp, graphite with a faint cool tint */
+  --bg: #f6f7f7;
+  --sidebar-bg: #fbfbfb;
   --card-bg: #ffffff;
-  --border: #e0e8f0;
-  --text-dark: #18324b;
-  --text-muted: #6c8194;
-  --active-bg: #e4f4f7;
-  --active-text: #117f90;
-  --blue: #1976d2;
-  --blue-soft: #e7f1fe;
-  --green: #208a6c;
-  --green-soft: #e5f6f0;
-  --red: #d05e62;
-  --red-soft: #fcede9;
-  --purple: #46708f;
-  --purple-soft: #eaf1f7;
-  --amber: #c98b28;
-  --amber-soft: #fff4df;
+  --raised: #f1f3f3;
+  --border: rgba(22, 27, 27, 0.09);
+  --border-strong: rgba(22, 27, 27, 0.16);
+  --text-dark: #161b1b;
+  --text-secondary: #4c5656;
+  --text-muted: #687272;
+
+  /* One accent: clinical teal (white text on it is 5.9:1) */
+  --accent: #0e7068;
+  --accent-hover: #0b5e57;
+  --accent-soft: #e8f2f0;
+  --active-bg: #eaf1f0;
+  --active-text: #0b5e57;
+
+  /* Legacy names, remapped so every page follows the same palette */
+  --blue: #0e7068;
+  --blue-soft: #e8f2f0;
+  --purple: #4c5656;
+  --purple-soft: #eff1f1;
+
+  /* Semantic colours carry meaning only */
+  --green: #1d7f55;
+  --green-soft: #e8f3ed;
+  --red: #c4373c;
+  --red-soft: #fbeeee;
+  --amber: #9a6410;
+  --amber-soft: #f8f0e2;
+
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 body {
-  background:
-    radial-gradient(circle at 96% -4%, rgba(131, 204, 226, .22), transparent 27rem),
-    var(--bg);
+  background: var(--bg) !important;
+  color: var(--text-dark);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
+/* ---------- Type: sentence case, 400 to 600, size for hierarchy ---------- */
+h1, h2, h3 { font-weight: 500 !important; letter-spacing: 0; }
+.greeting h1, .page-header h1 { font-size: 24px; line-height: 1.2; margin-bottom: 4px; }
+.greeting p, .page-header p { font-size: 14px; color: var(--text-secondary); }
+.card-header h2, .board-header h2, .section-header h2, .list-heading h2,
+#callbackCardWrap .card-header h2 { font-size: 16px; }
+
+.column-title, .side-card h3, thead th, .booking-card .next-up-tag {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+.column-title { font-size: 13px; font-weight: 500; }
+.side-card h3 { font-size: 14px; font-weight: 500 !important; color: var(--text-dark); margin-bottom: 12px; }
+thead th { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+
+/* ---------- Sidebar ---------- */
 .sidebar {
-  border-right-color: #e0e8f0;
-  box-shadow: 10px 0 32px rgba(24, 50, 75, .035);
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+  box-shadow: none;
+  padding: 20px 12px;
 }
-
+.sidebar .brand { padding: 0 8px 24px; gap: 10px; }
 .sidebar .brand .logo,
+.panel .brand .logo {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--accent) !important;
+  box-shadow: none !important;
+  color: #fff; font-size: 13px; font-weight: 600;
+}
+.sidebar .brand span { font-size: 16px; font-weight: 600; letter-spacing: 0; }
+.sidebar nav { gap: 2px; }
+.sidebar nav a, .sidebar .bottom a {
+  height: 36px; padding: 0 10px; gap: 10px;
+  border-radius: 8px;
+  font-size: 14px; font-weight: 400;
+  color: var(--text-secondary);
+  transition: background-color 150ms var(--ease), color 150ms var(--ease);
+}
+.sidebar .bottom { padding-top: 12px; border-top: 1px solid var(--border); }
+.sidebar nav a svg, .sidebar .bottom a svg {
+  width: 18px; height: 18px; stroke-width: 1.5;
+  color: var(--text-muted);
+}
+.sidebar nav a:hover, .sidebar .bottom a:hover { background-color: var(--raised); color: var(--text-dark); }
+.sidebar nav a.active, .sidebar .bottom a.active {
+  background-color: var(--active-bg);
+  color: var(--active-text);
+  font-weight: 500;
+  box-shadow: none;
+}
+.sidebar nav a.active svg, .sidebar .bottom a.active svg { color: var(--accent); }
+
+/* ---------- Top bar ---------- */
+.topbar {
+  height: 64px; padding: 0 32px;
+  background: var(--card-bg);
+  backdrop-filter: none;
+  border-bottom: 1px solid var(--border);
+}
+.topbar .search {
+  height: 36px; padding: 0 12px; gap: 8px;
+  background-color: var(--raised);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 150ms var(--ease), background-color 150ms var(--ease);
+}
+.topbar .search:focus-within { background-color: var(--card-bg); border-color: var(--border-strong); }
+.topbar .search svg { stroke-width: 1.5; }
+.topbar .right { gap: 16px; }
+.topbar .bell { width: 36px; height: 36px; border-radius: 8px; background-color: transparent; }
+.topbar .bell:hover { background-color: var(--raised); }
+.topbar .bell svg { width: 18px; height: 18px; stroke-width: 1.5; }
+.topbar .bell .dot { top: 8px; right: 8px; border-color: var(--card-bg); }
+.topbar .user { gap: 10px; }
 .topbar .user .avatar,
 .status-row .avatar-lg {
-  background: linear-gradient(135deg, #1976d2, #117f90) !important;
-  box-shadow: 0 8px 18px rgba(25, 118, 210, .18);
+  background: var(--raised) !important;
+  color: var(--text-secondary) !important;
+  box-shadow: inset 0 0 0 1px var(--border) !important;
+  font-weight: 500;
+}
+.topbar .user .avatar { width: 32px; height: 32px; font-size: 12px; }
+.topbar .user .info div:first-child { font-size: 14px; font-weight: 500; }
+.topbar .user .info div:last-child { font-size: 12px; color: var(--text-muted); }
+
+#logoutBtn {
+  height: 32px; padding: 0 12px !important;
+  font-size: 13px !important; font-weight: 500 !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border-strong) !important;
+  background-color: var(--card-bg) !important;
+  color: var(--text-secondary) !important;
+  transition: background-color 150ms var(--ease), color 150ms var(--ease);
+}
+#logoutBtn:hover { background-color: var(--raised) !important; color: var(--text-dark) !important; }
+
+.notification-panel { border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08); padding: 16px; }
+
+/* ---------- Search results and bell panel (injected by shared-ui.js) ---------- */
+body .nv-badge {
+  background: var(--red); color: #fff;
+  font-weight: 500; font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 2px var(--card-bg);
+}
+body .nv-panel, body .nv-results {
+  border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  padding: 8px;
+}
+body .nv-panel h3 { font-size: 14px; font-weight: 500; margin: 4px 8px 8px; }
+body .nv-results h4 {
+  text-transform: none; letter-spacing: 0;
+  font-size: 12px; font-weight: 500; color: var(--text-muted);
+  margin: 8px 8px 4px;
+}
+body .nv-item { padding: 8px; border-radius: 8px; transition: background-color 150ms var(--ease); }
+body .nv-item:hover, body .nv-item.active { background: var(--raised); }
+body .nv-item b { font-size: 14px; font-weight: 500; }
+body .nv-item span { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+body .nv-empty { font-size: 13px; color: var(--text-muted); padding: 8px; }
+body .nv-more { color: var(--accent); font-weight: 500; font-size: 13px; border-top-color: var(--border); }
+
+/* ---------- Page ---------- */
+.content { padding: 32px; }
+.greeting, .page-header { margin-bottom: 24px; }
+.greeting .date-chip {
+  height: 36px; display: inline-flex; align-items: center;
+  padding: 0 12px; border-radius: 8px;
+  font-size: 13px; font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
-.sidebar nav a { border-radius: 10px; }
-.sidebar nav a:hover { background-color: #edf6fb; }
-.sidebar nav a.active { box-shadow: inset 3px 0 0 var(--blue); }
-
-.topbar {
-  background: rgba(255, 255, 255, .92);
-  backdrop-filter: blur(14px);
-  border-bottom-color: #e0e8f0;
+/* ---------- Buttons ---------- */
+.btn-primary, .card-actions button.primary, .btn-submit, .btn-login,
+.modal .modal-actions .submit {
+  background: var(--accent) !important;
+  border: 1px solid var(--accent) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  filter: none !important;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: background-color 150ms var(--ease), transform 120ms var(--ease);
 }
+.btn-primary { height: 36px; padding: 0 16px; font-size: 14px; }
+.btn-primary svg { stroke-width: 1.75; }
+.btn-primary:hover, .card-actions button.primary:hover, .btn-submit:hover, .btn-login:hover,
+.modal .modal-actions .submit:hover { background: var(--accent-hover) !important; border-color: var(--accent-hover) !important; }
+.btn-primary:active, .btn-submit:active, .btn-login:active, .modal .modal-actions button:active,
+.patient-actions button:active, .card-actions button:active { transform: scale(0.98); }
 
-.card, .stat-card, .column, .side-card {
-  border-color: #e0e8f0;
-  box-shadow: 0 8px 24px rgba(24, 50, 75, .045);
+/* Destructive confirm keeps its meaning */
+#confirmYesBtn { background: var(--red) !important; border-color: var(--red) !important; }
+#confirmYesBtn:hover { background: #a92e33 !important; }
+
+/* Secondary links styled as buttons (inline-styled in markup) */
+a[href="calls.html?mode=demo"], #demoModeBtn {
+  height: 36px; display: inline-flex !important; align-items: center;
+  padding: 0 12px !important;
+  font-size: 14px !important; font-weight: 500 !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border-strong) !important;
+  background: var(--card-bg) !important;
+  color: var(--text-dark) !important;
+  transition: background-color 150ms var(--ease);
 }
+a[href="calls.html?mode=demo"]:hover, #demoModeBtn:hover { background: var(--raised) !important; }
 
-.stat-card { border-radius: 18px; }
-.stat-card:hover, .card:hover { box-shadow: 0 12px 28px rgba(24, 50, 75, .075); }
-
-.btn-primary, .card-actions button.primary, .btn-submit {
-  background: linear-gradient(135deg, #1976d2, #1565b7) !important;
-  border-color: #1976d2 !important;
-  box-shadow: 0 7px 14px rgba(25, 118, 210, .18);
+.btn-small, .card-actions button, .callback-row button, .patient-actions button,
+.modal .modal-actions .cancel {
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background-color: var(--card-bg);
+  color: var(--text-dark);
+  font-weight: 500;
+  transition: background-color 150ms var(--ease), border-color 150ms var(--ease);
 }
-.btn-primary:hover, .card-actions button.primary:hover, .btn-submit:hover { filter: brightness(.94); }
+.btn-small:hover, .card-actions button:hover, .callback-row button:hover,
+.patient-actions button:hover, .modal .modal-actions .cancel:hover {
+  background-color: var(--raised);
+  filter: none;
+}
+.card-actions button.danger { color: var(--red); }
 
-.booking-card { background-color: #fcfdff; border-color: #e0e8f0; }
-.booking-card.next-up { border-color: #1976d2; background-color: #eef6ff; box-shadow: 0 0 0 1px #1976d2; }
-.source-badge.ai_agent { background-color: #eaf1f7; color: #46708f; }
-.source-badge.staff { background-color: #e4f4f7; color: #117f90; }
+/* ---------- Cards and stats ---------- */
+.card, .stat-card, .column, .side-card, .appointment-panel {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border);
+  box-shadow: none !important;
+  border-radius: 12px;
+}
+.card { padding: 24px; }
+.stat-card:hover, .card:hover { box-shadow: none !important; }
 
-.panel { background: linear-gradient(145deg, #174f86 0%, #1976d2 52%, #117f90 100%) !important; }
-.login-card, .modal { border: 1px solid #e0e8f0; box-shadow: 0 24px 60px rgba(24, 50, 75, .14); }
+.stats-grid { gap: 12px; margin-bottom: 24px; }
+.stat-card { padding: 20px; border-radius: 12px; }
+.stat-card .label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+.stat-card .value {
+  font-size: 30px; line-height: 1; font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dark) !important;
+}
+/* The one figure that matters gets the accent */
+.stat-card.c-blue .value { color: var(--accent) !important; }
 
+/* ---------- Doctor coverage ---------- */
+.workspace-grid { margin-bottom: 24px; }
+.side-card { padding: 20px; }
+.coverage-grid { gap: 8px; }
+.coverage-item { padding: 12px; border-radius: 8px; background: var(--raised); border: 1px solid transparent; }
+.coverage-item .name { font-size: 14px; font-weight: 500; }
+.coverage-item .meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+/* ---------- Board and filters ---------- */
+.board-header { margin-bottom: 16px; gap: 12px; }
+.board-header .subtitle, .card-header .subtitle, .section-header span { font-size: 13px; color: var(--text-muted); }
+.board-header .controls { gap: 8px; }
+.board-header select, .previous-filter select, .filter select, .toolbar select,
+.date-nav {
+  height: 32px; padding: 0 8px;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: 8px;
+  background-color: var(--card-bg);
+  color: var(--text-dark) !important;
+  font-size: 13px;
+}
+.date-nav { height: auto; padding: 4px; }
+.date-nav button { border-radius: 6px; }
+.date-nav button:hover { background-color: var(--raised); }
+.date-nav .today-btn { border-left: 1px solid var(--border); border-radius: 0; }
+
+.column { padding: 16px; gap: 8px; }
+.column-title { padding: 0 4px 8px; color: var(--text-secondary) !important; }
+.column-title .count, .list-count {
+  border-radius: 6px; padding: 2px 8px;
+  font-family: var(--mono); font-size: 12px; font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  background-color: var(--raised) !important;
+  color: var(--text-secondary) !important;
+}
+.list-count { margin-left: 8px; vertical-align: 2px; }
+
+.booking-card { background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.booking-card.next-up { border-color: var(--accent); background-color: var(--accent-soft); box-shadow: none; }
+.booking-card .patient-name { font-weight: 500; }
+.booking-card .time { font-weight: 500; font-variant-numeric: tabular-nums; }
+.booking-card .next-up-tag { color: var(--accent); font-weight: 500; font-size: 12px; }
+
+.source-badge {
+  border-radius: 6px; font-weight: 500; font-size: 12px;
+  padding: 2px 8px 2px 6px;
+}
+.source-badge.ai_agent, .source-badge.staff { background-color: var(--raised); color: var(--text-secondary); }
+
+.empty-column, .empty-note, .empty-state, .call-history-empty { color: var(--text-muted); font-size: 13px; }
+
+/* ---------- Appointment lists (dashboard) ---------- */
+.appointment-panel { padding: 20px; margin-bottom: 24px; }
+.list-heading { margin-bottom: 16px; }
+.list-heading p { margin-top: 4px; font-size: 13px; color: var(--text-muted); }
+.list-labels {
+  padding: 8px 12px; margin-bottom: 4px;
+  background: transparent !important;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  font-size: 12px; font-weight: 500; color: var(--text-muted) !important;
+}
+.patient-list { scrollbar-color: rgba(22, 27, 27, 0.2) transparent; }
+.patient-list:focus-visible { outline: 2px solid var(--accent); }
+article.patient-row {
+  min-height: 72px; padding: 12px;
+  background: var(--card-bg) !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-left: 2px solid rgba(22, 27, 27, 0.14) !important;
+  transition: background-color 150ms var(--ease);
+}
+article.patient-row:hover { background: #fafbfb !important; }
+article.patient-row.state-arrived { background: var(--accent-soft) !important; border-left: 2px solid var(--accent) !important; }
+article.patient-row.state-completed { border-left: 2px solid var(--green) !important; }
+article.patient-row.state-no_show { border-left: 2px dashed var(--amber) !important; }
+article.patient-row.state-cancelled { border-left: 2px dotted rgba(22, 27, 27, 0.3) !important; }
+article.patient-row.state-cancelled .patient-title { color: var(--text-muted) !important; }
+.patient-title { font-size: 14px; font-weight: 500; color: var(--text-dark) !important; }
+.patient-doctor, .patient-source { font-size: 12px; color: var(--text-muted) !important; }
+.patient-time {
+  font-size: 14px; font-weight: 500;
+  font-variant-numeric: tabular-nums; color: var(--text-dark) !important;
+}
+/* Secondary line under a time (e.g. the time under a date) stays quiet */
+.patient-time small {
+  display: block !important; margin-top: 4px;
+  font-size: 12px; font-weight: 400; color: var(--text-muted) !important;
+}
+/* Signature: the next patient is marked like a live line on a monitor */
+#activeAppointments .patient-time small {
+  display: flex !important; align-items: center; gap: 6px;
+  font-weight: 500; color: var(--accent) !important;
+}
+#activeAppointments .patient-time small::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+}
+.patient-status {
+  border-radius: 6px; padding: 2px 8px; gap: 6px;
+  font-size: 12px; font-weight: 500;
+  background: var(--raised) !important; color: var(--text-secondary) !important;
+}
+.state-arrived .patient-status { background: #ffffff !important; color: var(--accent) !important; box-shadow: inset 0 0 0 1px rgba(14, 112, 104, 0.2); }
+.state-completed .patient-status { background: var(--green-soft) !important; color: var(--green) !important; }
+.state-no_show .patient-status { background: var(--amber-soft) !important; color: var(--amber) !important; }
+.state-cancelled .patient-status { background: var(--raised) !important; color: var(--text-muted) !important; }
+.patient-actions { gap: 8px; }
+.patient-actions button { height: 32px; padding: 0 10px; font-size: 13px; color: var(--text-dark) !important; border-color: var(--border-strong) !important; }
+.patient-actions button.main-action { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
+.patient-actions button.main-action:hover { background: var(--accent-hover) !important; }
+.previous-filter { font-size: 13px; color: var(--text-secondary) !important; gap: 8px; }
+
+/* Patients table avatars: one quiet tone instead of random colours */
+.avatar-sm { background-color: var(--raised) !important; color: var(--text-secondary) !important; box-shadow: inset 0 0 0 1px var(--border); font-weight: 500 !important; }
+
+/* ---------- Needs callback ---------- */
+#callbackCardWrap { margin-bottom: 32px; }
+#callbackCardWrap .callback-row {
+  border: 1px solid var(--border); border-radius: 12px;
+  background: var(--card-bg); padding: 16px; gap: 16px;
+  margin-bottom: 8px;
+}
+#callbackCardWrap .callback-row .info {
+  background: var(--card-bg) !important;
+  border: 0 !important; border-left: 2px solid var(--red) !important;
+  border-radius: 0 !important; padding: 0 0 0 12px !important;
+}
+.callback-row .info .phone { font-weight: 500; font-variant-numeric: tabular-nums; }
+.callback-reason { color: var(--red); font-weight: 500; font-size: 13px; margin-top: 8px; }
+.callback-row .missed-tag { border-radius: 6px; font-weight: 500; font-size: 12px; background: var(--amber-soft); color: var(--amber); }
+.callback-show-more { color: var(--accent) !important; font-weight: 500; }
+
+/* ---------- Tags and pills: radius by size, not full pills ---------- */
+.pill, .tag, .side-row .tag, .call-row .tag, .readonly-chip {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+}
+.pill.pending, .pill.upcoming, .tag.no_show, .tag.missed, .tag.rescheduled,
+.side-row .tag.no_show, .call-row .tag.no_show, .call-row .tag.missed, .call-row .tag.rescheduled { background-color: var(--amber-soft) !important; color: var(--amber) !important; }
+.pill.contacted, .pill.applied, .call-row .tag.booked, .call-row .tag.completed { background-color: var(--green-soft) !important; color: var(--green) !important; }
+.side-row .tag.cancelled, .call-row .tag.cancelled { background-color: var(--red-soft) !important; color: var(--red) !important; }
+.call-row .tag.confirmed, .call-row .tag.arrived { background-color: var(--accent-soft) !important; color: var(--accent) !important; }
+.pill.past { background-color: var(--raised) !important; color: var(--text-muted) !important; }
+
+/* AI receptionist capability tags read as quiet labels */
+.tag-row .tag { background-color: var(--raised) !important; color: var(--text-secondary) !important; padding: 4px 10px; }
+.status-row .status-line .dot { background-color: var(--green); box-shadow: none !important; }
+
+/* ---------- Tables ---------- */
+thead th { border-bottom: 1px solid var(--border); padding: 8px 12px; }
+tbody td { border-bottom-color: var(--border) !important; }
+tbody tr { transition: background-color 150ms var(--ease); }
+tbody tr:hover { background-color: #fafbfb !important; }
+
+/* ---------- Banners ---------- */
+.not-live-banner, #demoBanner {
+  background-color: var(--amber-soft) !important;
+  color: #7a4f0c !important;
+  border: 1px solid rgba(154, 100, 16, 0.18) !important;
+  border-radius: 8px; font-weight: 500;
+}
+.error-banner, .banner-error { background-color: var(--red-soft); color: #a92e33; border-radius: 8px; font-weight: 500; }
+.banner-success { background-color: var(--green-soft); color: var(--green); border-radius: 8px; font-weight: 500; }
+.banner-info { background-color: var(--accent-soft); color: var(--accent-hover); border-radius: 8px; font-weight: 500; }
+.form-error, .modal-error { color: var(--red); }
+.form-success { color: var(--green); }
+
+/* ---------- Forms ---------- */
+input, select, textarea { font-family: inherit; }
+.field input, .modal .form-field input, .modal .form-field select,
+.form-field input, .form-field select, .form-field textarea {
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background-color: var(--card-bg);
+  color: var(--text-dark);
+  font-size: 14px;
+  transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease);
+}
+.field label, .modal .form-field label, .form-field label { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+.field input::placeholder, input::placeholder { color: #9aa2a2; }
 input:focus, select:focus, textarea:focus {
-  outline: 3px solid rgba(25, 118, 210, .16) !important;
-  border-color: #1976d2 !important;
+  outline: none !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(14, 112, 104, 0.14) !important;
+}
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.toggle.on { background-color: var(--accent) !important; }
+.toggle.off { background-color: rgba(22, 27, 27, 0.16) !important; }
+
+/* ---------- Modals and toasts ---------- */
+.modal-overlay { background-color: rgba(16, 20, 20, 0.4); }
+.modal, .leave-edit-dialog, .login-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+}
+.modal h2 { font-size: 18px; }
+.modal p.hint { font-size: 13px; line-height: 1.5; color: var(--text-secondary); }
+.modal .modal-actions { gap: 8px; margin-top: 20px; }
+.modal .modal-actions button { height: 40px; padding: 0 16px; font-weight: 500; }
+
+.toast {
+  background-color: var(--text-dark); border-radius: 10px;
+  padding: 12px 16px; font-size: 14px; font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  animation: nirva-toast-in 240ms var(--ease);
+}
+.toast .toast-icon, .toast.missed-call .toast-icon { width: 24px; height: 24px; background-color: rgba(255, 255, 255, 0.12); }
+@keyframes nirva-toast-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+/* ---------- Login and reset ---------- */
+.panel {
+  background: #0f1918 !important;
+  color: #eef2f1;
+}
+.panel .brand span { font-weight: 600; font-size: 16px; }
+.panel .pitch h2 { font-size: 32px; line-height: 1.15; font-weight: 500 !important; letter-spacing: -0.01em; }
+.panel .pitch p { font-size: 15px; line-height: 1.6; color: #a7b1b0; }
+.panel .stats .stat .value { font-size: 22px; font-weight: 500; color: #eef2f1; }
+.panel .stats .stat .label { color: #8b9696; }
+.panel .footnote { color: #6f7a7a; }
+.form-inner h1 { font-size: 24px; }
+.form-inner .subtitle { color: var(--text-secondary); }
+.btn-login { height: 44px; font-size: 14px; }
+.forgot, .back-to-login { color: var(--accent) !important; font-weight: 500; }
+
+/* ---------- Motion: one curve, no layout animation ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation-duration: 1ms !important; }
 }
 
 @media (max-width: 720px) {
   .sidebar { box-shadow: none; }
+  .content { padding: 20px 16px; }
+  .topbar { height: auto; padding: 12px 16px; }
+  .sidebar nav a, .sidebar .bottom a { height: 32px; }
 }
